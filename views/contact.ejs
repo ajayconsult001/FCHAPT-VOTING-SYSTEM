@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Contact Support | FCAHPT Voting</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: 'Raleway', Arial, sans-serif; background: #f4f8fb; color: #222; margin: 0; }
+    .contact-container { max-width: 500px; margin: 40px auto; background: #fff; border-radius: 14px; box-shadow: 0 4px 20px rgba(16,112,197,0.08); padding: 32px; }
+    h1 { color: #1070c5; text-align: center; margin-bottom: 2rem; }
+    label { display: block; margin-bottom: 8px; color: #14532d; font-weight: 600; }
+    input, textarea { width: 100%; padding: 10px; margin-bottom: 18px; border-radius: 6px; border: 1px solid #ccc; }
+    button { background: #1070c5; color: #fff; border: none; border-radius: 6px; padding: 12px 24px; font-weight: 700; cursor: pointer; }
+    button:hover { background: #14532d; }
+    .success { color: #047857; background: #d1fae5; border-radius: 6px; padding: 10px; margin-bottom: 12px; }
+    .error { color: #b91c1c; background: #fee2e2; border-radius: 6px; padding: 10px; margin-bottom: 12px; }
+    @media (max-width: 600px) { .contact-container { padding: 14px 4px; } }
+  </style>
+</head>
+<body>
+  <div class="contact-container">
+    <h1>Contact Support</h1>
+    <% if (message) { %><div class="success"><%= message %></div><% } %>
+    <% if (error) { %><div class="error"><%= error %></div><% } %>
+    <form method="POST" action="/contact">
+      <label for="name">Your Name</label>
+      <input type="text" name="name" id="name" required />
+      <label for="email">Your Email</label>
+      <input type="email" name="email" id="email" required />
+      <label for="message">Message</label>
+      <textarea name="message" id="message" rows="5" required></textarea>
+      <button type="submit">Send Message</button>
+    </form>
+  </div>
+</body>
+</html>

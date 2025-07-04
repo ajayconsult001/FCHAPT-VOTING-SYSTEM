@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Welcome | FCAHPT Biometric Voting</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Raleway:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1070c5;
+      --primary-dark: #14532d;
+      --accent: #ffeb3b;
+      --bg: #f4f8fb;
+      --white: #fff;
+      --shadow: 0 4px 20px rgba(16,112,197,0.08);
+      --radius: 16px;
+      --transition: 0.2s cubic-bezier(.4,0,.2,1);
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      min-height: 100vh;
+      background: url('/styles/assets/vote-illustration.jpg') center center/cover no-repeat fixed;
+      color: #222;
+      font-family: 'Raleway', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+    .navbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 80px;
+      padding: 0 3rem;
+      background: linear-gradient(90deg, #1070c5, #1174c5);
+      box-shadow: 0 4px 12px rgba(30, 136, 229, 0.2);
+      position: relative;
+      z-index: 10;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .navbar-logo {
+      height: 48px;
+      width: 48px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 8px rgba(16, 95, 163, 0.1);
+      background: #fff;
+      transition: transform 0.3s;
+    }
+    .navbar-logo:hover {
+      transform: scale(1.1);
+    }
+    .college-name {
+      font-size: 1.12rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      text-shadow: 0 1px 6px rgba(16, 112, 197, 0.10);
+    }
+    .navbar nav a {
+      margin: 0 1.5rem;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 600;
+      transition: color 0.3s, text-shadow 0.3s;
+      border-bottom: 2px solid transparent;
+      padding-bottom: 2px;
+    }
+    .navbar nav a.active,
+    .navbar nav a:hover {
+      color: var(--accent);
+      text-shadow: 0 0 5px rgba(255, 235, 59, 0.5);
+      border-bottom: 2px solid var(--accent);
+    }
+    .main-scrollable-wrapper {
+      flex: 1 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      min-height: 0;
+      overflow-y: auto;
+      padding-bottom: 24px;
+    }
+    .fixed-center-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 0;
+      margin-top: 32px;
+      margin-bottom: 24px;
+    }
+    .hero-bg-blend {
+      position: relative;
+      width: 100%;
+      max-width: 900px;
+      background: rgba(255,255,255,0.78);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 32px rgba(16,112,197,0.10);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 2.2rem;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      padding: 2.2rem 1.2rem 1.2rem 1.2rem;
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .hero-title {
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 0.7rem;
+      letter-spacing: 0.5px;
+      font-family: 'Montserrat', Arial, sans-serif;
+      text-shadow: 0 2px 8px #eaf6fd;
+    }
+    .hero-desc {
+      font-size: 1.08rem;
+      color: #333;
+      margin-bottom: 1.2rem;
+      line-height: 1.5;
+      font-weight: 500;
+      background: rgba(255,255,255,0.7);
+      border-radius: 10px;
+      padding: 0.7rem 1rem;
+      box-shadow: 0 2px 8px rgba(16,112,197,0.06);
+    }
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    .btn {
+      display: inline-block;
+      background: var(--primary);
+      color: #fff;
+      padding: 0.75rem 2rem;
+      border-radius: 30px;
+      font-size: 1.08rem;
+      text-decoration: none;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(30, 136, 229, 0.10);
+      transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+      border: none;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+    }
+    .btn.secondary {
+      background: #fff;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+    .btn:hover,
+    .btn.secondary:hover {
+      background: var(--primary-dark);
+      color: #fff;
+      border-color: var(--primary-dark);
+      box-shadow: 0 8px 24px rgba(16,112,197,0.13);
+      transform: translateY(-2px) scale(1.03);
+    }
+    .features-row {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      margin: 1.2rem auto 0 auto;
+      max-width: 900px;
+      flex-wrap: wrap;
+    }
+    .feature-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.2rem 1.1rem 1rem 1.1rem;
+      min-width: 120px;
+      max-width: 220px;
+      flex: 1 1 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: box-shadow var(--transition), transform var(--transition);
+      margin-bottom: 0.5rem;
+    }
+    .feature-card:hover {
+      box-shadow: 0 8px 32px rgba(16,112,197,0.13);
+      transform: translateY(-4px) scale(1.03);
+    }
+    .feature-icon {
+      font-size: 1.6rem;
+      color: var(--primary);
+      margin-bottom: 0.4rem;
+    }
+    .feature-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 0.3rem;
+      text-align: center;
+    }
+    .feature-desc {
+      font-size: 0.97rem;
+      color: #444;
+      text-align: center;
+      line-height: 1.4;
+    }
+    footer {
+      flex-shrink: 0;
+      background: #222;
+      color: #eee;
+      text-align: center;
+      padding: 1.2rem 0;
+      font-size: 1rem;
+      height: 48px;
+      letter-spacing: 0.5px;
+      margin: 0;
+    }
+    @media (max-width: 900px) {
+      .navbar { padding: 1rem 1.5rem; }
+      .logo-row { gap: 8px; }
+      .navbar-logo { height: 36px; width: 36px; }
+      .college-name { font-size: 0.85rem; white-space: normal; text-align: center; }
+      .hero-content { padding: 1.1rem 0.3rem; }
+      .features-row { gap: 8px; }
+    }
+    @media (max-width: 600px) {
+      .navbar { flex-direction: column; height: auto; padding: 0.7rem 0.5rem; }
+      .logo-row { flex-direction: column; gap: 4px; }
+      .hero-title { font-size: 1.2rem; }
+      .features-row { flex-direction: column; gap: 4px; }
+      .feature-card { min-width: 0; max-width: 100%; }
+      .main-fixed-wrapper { height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="logo-row">
+      <img src="/styles/assets/sug logo.jpg" alt="SUG Logo" class="navbar-logo">
+      <span class="college-name">
+        FEDERAL COLLEGE OF ANIMAL HEALTH AND PRODUCTION TECHNOLOGY IBADAN
+      </span>
+      <img src="/styles/assets/FCAHPT-LOGO.webp" alt="College Logo" class="navbar-logo">
+    </div>
+    <nav>
+      <a href="/" class="active">Home</a>
+      <a href="#">Contact</a>
+    </nav>
+  </header>
+
+  <div class="main-scrollable-wrapper">
+    <div class="fixed-center-content">
+      <section class="hero-bg-blend">
+        <div class="hero-content">
+          <div class="hero-title">Hey Moorite! <br>Ready To Vote?</div>
+          <div class="hero-desc">
+            <b>FCAHPT Biometric Voting System</b> guarantees secure, fraud-free elections using biometric verification, encourages higher voter turnout with simple online access, and lets you vote confidently.
+          </div>
+          <div class="hero-actions">
+            <a href="/index" class="btn">Get Started</a>
+          </div>
+        </div>
+      </section>
+      <section class="features-row">
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <div class="feature-title">Biometric Security</div>
+          <div class="feature-desc">
+            Every vote is protected by advanced biometric authentication, ensuring only eligible voters can participate.
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <div class="feature-title">Fast & Simple</div>
+          <div class="feature-desc">
+            Vote from anywhere, anytime, on any device. The process is quick, intuitive, and stress-free.
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📈</div>
+          <div class="feature-title">Transparent Results</div>
+          <div class="feature-desc">
+            Real-time, transparent results and audit trails build trust in the electoral process.
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    © <%= new Date().getFullYear() %> FCAH&PT Electoral Commission. All rights reserved.
+  </footer>
+</body>
+</html>

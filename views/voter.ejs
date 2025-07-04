@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Voter Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Raleway:wght@400;500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #1070c5;
+      --primary-dark: #14532d;
+      --accent: #ffeb3b;
+      --bg: #f4f8fb;
+      --white: #fff;
+      --shadow: 0 4px 20px rgba(16,112,197,0.08);
+      --radius: 14px;
+      --transition: 0.2s cubic-bezier(.4,0,.2,1);
+    }
+    html { box-sizing: border-box; }
+    *, *:before, *:after { box-sizing: inherit; }
+    body {
+      margin: 0;
+      font-family: 'Raleway', Arial, sans-serif;
+      background: var(--bg);
+      color: #222;
+      min-height: 100vh;
+      display: flex;
+    }
+    .confirm-vote-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.7em;
+      background: linear-gradient(90deg, #1070c5 60%, #22c55e 100%);
+      color: #fff;
+      font-family: 'Montserrat', Arial, sans-serif;
+      font-size: 1.18rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      border: none;
+      border-radius: 30px;
+      padding: 1rem 2.4rem;
+      box-shadow: 0 6px 24px rgba(16,112,197,0.13);
+      cursor: pointer;
+      transition: background 0.18s, transform 0.18s, box-shadow 0.18s;
+      margin-top: 18px;
+      margin-bottom: 12px;
+      outline: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .confirm-vote-btn:before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.08);
+      border-radius: 30px;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      opacity: 0;
+    }
+    .confirm-vote-btn:hover,
+    .confirm-vote-btn:focus {
+      background: linear-gradient(90deg, #14532d 60%, #1070c5 100%);
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 12px 32px rgba(16,112,197,0.19);
+    }
+    .confirm-vote-btn:active {
+      background: #1565c0;
+      transform: scale(0.98);
+    }
+    .confirm-vote-btn .icon {
+      font-size: 1.3em;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    /* Sidebar */
+    .sidebar {
+      width: 245px;
+      background: var(--primary);
+      color: var(--white);
+      min-height: 100vh;
+      position: fixed;
+      left: 0; top: 0; bottom: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding-top: 32px;
+      box-shadow: 2px 0 12px rgba(16,112,197,0.08);
+      transition: width var(--transition);
+    }
+    .sidebar .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 24px 24px 24px;
+      width: 100%;
+      border-bottom: 1px solid #1e90ff33;
+      margin-bottom: 18px;
+    }
+    .sidebar .navbar-logo {
+      height: 40px; width: 40px; border-radius: 50%; border: 2px solid #fff; background: #fff;
+    }
+    .sidebar .college-name {
+      font-size: 1.08rem; font-weight: 700; color: #fff; white-space: normal; letter-spacing: 0.5px;
+    }
+    .sidebar nav {
+      width: 100%;
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sidebar nav a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 36px;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      border-left: 4px solid transparent;
+      border-radius: 0 24px 24px 0;
+      font-size: 1.07rem;
+      transition: background var(--transition), border-color var(--transition), color var(--transition);
+      position: relative;
+    }
+    .sidebar nav a .icon { font-size: 1.25em; }
+    .sidebar nav a.active, .sidebar nav a:hover {
+      background: #1565c0;
+      border-left: 4px solid var(--accent);
+      color: var(--accent);
+    }
+    .sidebar .logout-btn {
+      margin-top: auto;
+      margin-bottom: 32px;
+      margin-left: 24px;
+      background: var(--white);
+      color: var(--primary);
+      border: none;
+      border-radius: 6px;
+      padding: 10px 28px;
+      font-weight: 700;
+      font-size: 1.08rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(16,112,197,0.08);
+      transition: background var(--transition), color var(--transition);
+    }
+    .sidebar .logout-btn:hover {
+      background: var(--accent);
+      color: var(--primary);
+    }
+    /* Main Content */
+    .main-content {
+      margin-left: 245px;
+      width: calc(100% - 245px);
+      padding: 40px 40px 32px 40px;
+      min-height: 100vh;
+      background: var(--bg);
+      transition: margin-left var(--transition), width var(--transition);
+    }
+    .welcome {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 28px;
+      letter-spacing: 0.5px;
+    }
+    /* Dashboard Cards */
+    .dashboard-cards {
+      display: flex;
+      gap: 32px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+    }
+    .dashboard-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px 36px;
+      min-width: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      transition: box-shadow var(--transition), transform var(--transition);
+    }
+    .dashboard-card:hover {
+      box-shadow: 0 8px 32px rgba(16,112,197,0.14);
+      transform: translateY(-4px) scale(1.02);
+    }
+    .dashboard-card .card-title { font-size: 1.12rem; color: var(--primary); font-weight: 600; margin-bottom: 8px; }
+    .dashboard-card .card-value { font-size: 2.3rem; font-weight: 800; color: var(--primary-dark); }
+    /* Section Titles */
+    .section-title {
+      color: var(--primary-dark);
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+      letter-spacing: 1px;
+    }
+    /* Positions & Candidates */
+    .positions-block { margin-bottom: 36px; }
+    .position-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 10px;
+      letter-spacing: 0.5px;
+      border-left: 4px solid var(--primary);
+      padding-left: 12px;
+      background: #eaf6fd;
+      border-radius: 6px;
+      display: inline-block;
+      margin-top: 18px;
+    }
+    .candidates-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 22px;
+      margin-top: 12px;
+    }
+    .candidate-card {
+      background: var(--white);
+      border: 2px solid #e1e7e3;
+      border-radius: var(--radius);
+      box-shadow: 0 2px 8px rgba(20, 83, 45, 0.07);
+      padding: 20px 18px 16px 18px;
+      width: 230px;
+      min-width: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+      user-select: none;
+      position: relative;
+      cursor: pointer;
+    }
+    .candidate-card:hover, .candidate-card:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 4px 20px rgba(16,112,197,0.13);
+      transform: translateY(-2px) scale(1.01);
+      z-index: 2;
+    }
+    .candidate-pic {
+      width: 70px; height: 70px; border-radius: 50%; overflow: hidden; border: 2px solid var(--primary); margin-bottom: 10px; background: var(--white);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .candidate-pic img { width: 100%; height: 100%; object-fit: cover; }
+    .placeholder-pic { width: 100%; text-align: center; color: #bbb; font-size: 0.95rem; }
+    .candidate-info h3 { font-family: 'Montserrat', serif; font-weight: 700; margin: 0 0 6px 0; color: var(--primary); text-align: center; }
+    .candidate-info p { font-size: 0.98rem; color: var(--primary-dark); text-align: center; margin: 0 0 6px 0; }
+    .profile-btn {
+      margin-top: 8px; background: var(--primary); color: var(--white); border: none; border-radius: 6px; padding: 7px 18px; font-weight: 600;
+      cursor: pointer; transition: background var(--transition); font-size: 0.98rem;
+    }
+    .profile-btn:hover { background: var(--primary-dark); }
+    .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background: rgba(0,0,0,0.4);}
+    .modal-content { background: var(--white); margin: 6% auto; padding: 24px 32px; border-radius: var(--radius); width: 95%; max-width: 420px; position: relative; box-shadow: 0 4px 24px rgba(20, 83, 45, 0.13);}
+    .close { color: #aaa; position: absolute; right: 18px; top: 12px; font-size: 2rem; font-weight: bold; cursor: pointer;}
+    .close:hover { color: var(--primary); }
+    .charts-row { display: flex; flex-wrap: wrap; gap: 32px; justify-content: center; margin: 36px 0 24px 0;}
+    .chart-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 12px; width: 320px; }
+    .email-subscribe-card { background: #eaf6fd; border-radius: var(--radius); box-shadow: 0 2px 12px rgba(16,112,197,0.08); padding: 24px 18px; margin: 32px auto 0 auto; max-width: 400px;}
+    .email-subscribe-card h3 { color: var(--primary); margin-bottom: 12px;}
+    .email-subscribe-card input[type="email"] { width: 70%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; margin-right: 8px;}
+    .email-subscribe-card button { background: #22c55e; color: var(--white); border: none; border-radius: 6px; padding: 10px 18px; font-weight: 600; cursor: pointer;}
+    .email-subscribe-card button:hover { background: var(--primary-dark); }
+    .confirmation-message { color: var(--primary); margin-top: 10px; font-weight: 600; }
+    .success-message { background: #d1fae5; color: #047857; border: 2px solid #22c55e; border-radius: 8px; padding: 14px 20px; margin: 18px 0; font-weight: 600; text-align: center; }
+    /* Results Table Styles */
+    .table-container table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 1.05rem;
+      box-shadow: 0 2px 12px rgba(16,112,197,0.06);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .table-container th, .table-container td {
+      padding: 14px 18px;
+      border-bottom: 1px solid #e1e7e3;
+      text-align: left;
+    }
+    .table-container th {
+      background: #eaf6fd;
+      color: #1070c5;
+      font-weight: 700;
+    }
+    .table-container tr:last-child td { border-bottom: none; }
+    @media (max-width: 900px) {
+      .sidebar { width: 60px; }
+      .main-content { margin-left: 60px; width: calc(100% - 60px); }
+      .sidebar .logo-row, .sidebar .college-name { display: none; }
+      .sidebar nav a { padding: 12px 10px; font-size: 0.95rem; }
+      .sidebar .logout-btn { margin-left: 10px; padding: 8px 12px; font-size: 0.95rem; }
+      .table-container table, .table-container thead, .table-container tbody, .table-container th, .table-container td, .table-container tr {
+        display: block;
+      }
+      .table-container thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+      }
+      .table-container tr {
+        margin-bottom: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(16,112,197,0.1);
+        background: #fff;
+        padding: 12px;
+      }
+      .table-container td {
+        border: none;
+        position: relative;
+        padding-left: 50%;
+        text-align: right;
+        font-size: 0.98rem;
+        color: #14532d;
+      }
+      .table-container td::before {
+        position: absolute;
+        top: 12px;
+        left: 18px;
+        width: 45%;
+        padding-right: 10px;
+        white-space: nowrap;
+        font-weight: 700;
+        content: attr(data-label);
+        color: #1070c5;
+        text-align: left;
+      }
+    }
+    @media (max-width: 600px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; width: 100%; padding: 16px 4px; }
+      .dashboard-cards { flex-direction: column; gap: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo-row">
+      <img src="/styles/assets/sug logo.jpg" alt="SUG Logo" class="navbar-logo" />
+      <span class="college-name">FCAH&PT IBADAN</span>
+      <img src="/styles/assets/FCAHPT-LOGO.webp" alt="College Logo" class="navbar-logo" />
+    </div>
+    <nav>
+      <a href="#dashboard" class="active" onclick="showSection('dashboardSection', this)"><span class="icon">🏠</span>Dashboard</a>
+      <a href="#positions" onclick="showSection('positionsSection', this)"><span class="icon">📋</span>Positions</a>
+      <a href="#vote" onclick="showSection('voteSection', this)"><span class="icon">🗳️</span>Vote</a>
+      <a href="#results" onclick="showSection('resultsSection', this)"><span class="icon">📊</span>Results</a>
+    </nav>
+    <form action="/voters/logout" method="GET" style="width: 100%">
+      <button type="submit" class="logout-btn">Logout</button>
+    </form>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <% if (voter && voter.name) { %>
+    <div class="welcome">
+      Welcome, <%= voter.name %> (<%= voter.matric_number %>)
+    </div>
+    <% } %>
+
+  <!-- Dashboard Section -->
+<section id="dashboardSection">
+
+  <!-- Announcements & Status -->
+  <div class="dashboard-announcements" style="margin-bottom: 28px;">
+    <div class="announcement-card" role="status" aria-live="polite">
+      <span class="announcement-icon" aria-hidden="true">📢</span>
+      <div>
+        <strong>Announcement:</strong>
+        <span>
+          Voting closes <b>Friday at 5pm</b>. Make sure to cast your vote before the deadline!
+        </span>
+      </div>
+    </div>
+    <% if (voter && !voter.hasVoted) { %>
+      <div class="announcement-card" style="background:#fffbe6;color:#b45309;">
+        <span class="announcement-icon" aria-hidden="true">⚠️</span>
+        <div>
+          <strong>Reminder:</strong>
+          <span>You have not voted yet. <a href="#" onclick="showSection('voteSection', document.querySelector('.sidebar nav a[href=\'#vote\']'))" style="color:#1070c5;text-decoration:underline;">Click here to vote now.</a></span>
+        </div>
+      </div>
+    <% } else if (voter && voter.hasVoted) { %>
+      <div class="announcement-card" style="background:#e6fffa;color:#047857;">
+        <span class="announcement-icon" aria-hidden="true">✅</span>
+        <div>
+          <strong>Thank you!</strong>
+          <span>Your vote has been recorded.</span>
+        </div>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Help & Security Note -->
+  <div class="dashboard-help" style="margin-bottom: 18px;">
+    <div class="help-card" role="note">
+      <span class="help-icon" aria-hidden="true">❓</span>
+      <span>
+        <strong>Need help?</strong> See our <a href="/help" style="color:#1070c5;text-decoration:underline;">FAQ</a> or <a href="mailto:support@fcahpt.edu.ng" style="color:#1070c5;text-decoration:underline;">contact support</a>.
+      </span>
+    </div>
+    <div class="help-card" style="background:#eaf6fd;" role="note">
+      <span class="help-icon" aria-hidden="true">🔒</span>
+      <span>
+        <strong>Security:</strong> Your vote is confidential and protected by biometric verification.
+      </span>
+    </div>
+  </div>
+
+  <!-- WhatsApp Support Floating Button -->
+  <a href="https://wa.me/09024094660" target="_blank" style="position:fixed;bottom:24px;right:24px;z-index:999;background:#25d366;color:#fff;padding:14px 22px;border-radius:30px;font-weight:700;box-shadow:0 2px 8px rgba(16,112,197,0.13);text-decoration:none;display:flex;align-items:center;gap:8px;">
+    <span style="font-size:1.3em;">💬</span> WhatsApp Support
+  </a>
+
+  <!-- Dashboard Cards -->
+  <div class="dashboard-cards">
+    <div class="dashboard-card">
+      <div class="card-title">Total Positions</div>
+      <div class="card-value">
+        <%= Object.keys((() => { const p = {}; candidates.forEach(c => { if (!p[c.position]) p[c.position] = 1; }); return p; })()).length %>
+      </div>
+    </div>
+    <div class="dashboard-card">
+      <div class="card-title">Total Candidates</div>
+      <div class="card-value"><%= candidates.length %></div>
+    </div>
+  </div>
+
+  <!-- Bar Chart -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3 style="color: #1070c5">Votes (Bar)</h3>
+      <canvas id="barChart"></canvas>
+    </div>
+  </div>
+</section>
+
+<style>
+  .dashboard-announcements { max-width: 700px; margin: 0 auto 24px auto; }
+  .announcement-card {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: #eaf6fd; color: #14532d; border-radius: 10px; padding: 16px 20px; margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(16,112,197,0.07);
+    font-size: 1.07rem;
+  }
+  .announcement-icon { font-size: 1.5em; margin-right: 8px; }
+  .dashboard-help { max-width: 700px; margin: 0 auto 18px auto; }
+  .help-card {
+    display: flex; align-items: center; gap: 12px;
+    background: #fff; color: #14532d; border-radius: 10px; padding: 12px 18px; margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(16,112,197,0.04);
+    font-size: 1.02rem;
+  }
+  .help-icon { font-size: 1.3em; }
+  @media (max-width: 700px) {
+    .dashboard-announcements, .dashboard-help { padding: 0 4px; }
+    .announcement-card, .help-card { font-size: 0.98rem; padding: 12px 8px; }
+  }
+</style>
+
+    <!-- Positions Section -->
+    <section id="positionsSection" style="display: none">
+      <div class="section-title">Positions & Candidates</div>
+      <%
+        const positions = {};
+        candidates.forEach((candidate) => {
+          if (!positions[candidate.position]) positions[candidate.position] = [];
+          positions[candidate.position].push(candidate);
+        });
+        Object.keys(positions).forEach((position, posIdx) => {
+      %>
+      <div class="positions-block" id="position-<%= posIdx %>">
+        <div class="position-title"><%= position %></div>
+        <div class="candidates-list">
+          <% positions[position].forEach((candidate, idx) => { %>
+          <div class="candidate-card" tabindex="0">
+            <div class="candidate-pic">
+              <% if (candidate.pic) { %>
+              <img src="<%= candidate.pic %>" alt="Picture of <%= candidate.name %>" />
+              <% } else { %>
+              <div class="placeholder-pic">No Image</div>
+              <% } %>
+            </div>
+            <div class="candidate-info">
+              <h3><%= candidate.name %></h3>
+              <p><strong>Department:</strong> <%= candidate.department %></p>
+              <p><strong>Level:</strong> <%= candidate.level %></p>
+              <button
+                type="button"
+                class="profile-btn"
+                onclick="openModal('<%= position.replace(/\s+/g, '_') %>_<%= idx %>')"
+              >
+                View Profile
+              </button>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+      </div>
+      <% }) %>
+    </section>
+
+    <!-- Candidate Profile Modals -->
+    <%
+      Object.keys(positions).forEach((position, posIdx) => {
+        positions[position].forEach((candidate, idx) => {
+    %>
+    <div id="modal-<%= position.replace(/\s+/g, '_') %>_<%= idx %>" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeModal('<%= position.replace(/\s+/g, '_') %>_<%= idx %>')">&times;</span>
+        <div class="candidate-pic" style="margin-bottom: 18px">
+          <% if (candidate.pic) { %>
+          <img src="<%= candidate.pic %>" alt="Picture of <%= candidate.name %>" />
+          <% } else { %>
+          <div class="placeholder-pic">No Image</div>
+          <% } %>
+        </div>
+        <h2 style="color: #1070c5"><%= candidate.name %></h2>
+        <p><strong>Position:</strong> <%= candidate.position %></p>
+        <p><strong>Department:</strong> <%= candidate.department %></p>
+        <p><strong>Level:</strong> <%= candidate.level %></p>
+        <p><strong>Bio:</strong> <%= candidate.bio %></p>
+        <p><strong>Experience:</strong> <%= candidate.experience %></p>
+        <p><strong>Achievements:</strong> <%= candidate.achievements %></p>
+        <p><strong>Vision:</strong> <%= candidate.vision %></p>
+        <p><strong>Core Values:</strong> <%= candidate.core_values %></p>
+        <p><strong>Contact:</strong> <%= candidate.contact %></p>
+      </div>
+    </div>
+    <% }) }) %>
+
+    <!-- Vote Section -->
+    <section id="voteSection" style="display: none">
+      <form action="/voter/vote" method="POST" novalidate style="margin-top: 32px">
+        <div class="section-title">Cast Your Vote</div>
+        <% Object.keys(positions).forEach((position, posIdx) => { %>
+        <div class="positions-block" id="vote-position-<%= posIdx %>">
+          <div class="position-title"><%= position %></div>
+          <div class="candidates-list">
+            <% positions[position].forEach((candidate, idx) => { %>
+            <label class="candidate-card" style="cursor: pointer">
+              <input
+                type="radio"
+                name="vote_<%= position.replace(/\s+/g, '_') %>"
+                value="<%= candidate.id %>"
+                required
+              />
+              <div class="candidate-pic">
+                <% if (candidate.pic) { %>
+                <img src="<%= candidate.pic %>" alt="Picture of <%= candidate.name %>" />
+                <% } else { %>
+                <div class="placeholder-pic">No Image</div>
+                <% } %>
+              </div>
+              <div class="candidate-info">
+                <h3><%= candidate.name %></h3>
+                <p><%= candidate.bio.length > 100 ? candidate.bio.substring(0, 100) + '...' : candidate.bio %></p>
+              </div>
+            </label>
+            <% }) %>
+          </div>
+        </div>
+        <% }) %>
+        <button type="submit" class="confirm-vote-btn">
+          <span class="icon">🗳️</span>
+          Confirm Vote
+        </button>
+        <% if (typeof message !== 'undefined' && message) { %>
+        <div class="success-message"><%= message %></div>
+        <% } %>
+      </form>
+    </section>
+
+    <!-- Results Section -->
+    <section id="resultsSection" style="display: none">
+      <h2 class="section-title" style="margin-bottom: 8px">Live Election Results</h2>
+      <p
+        style="text-align: center; color: #14532d; font-weight: 600; margin-bottom: 18px"
+      >
+        Results update in real time. Voting is currently
+        <span id="votingStatus" style="font-weight: 700; color: #1070c5">
+          <%= votingOpen ? 'Open' : 'Closed' %>
+        </span
+        ><br />
+        Last updated: <span id="lastUpdated"><%= lastUpdated || new Date().toLocaleString() %></span>
+      </p>
+      <%
+        // Group candidates by position
+        const grouped = {};
+        candidates.forEach((c) => {
+          if (!grouped[c.position]) grouped[c.position] = [];
+          grouped[c.position].push(c);
+        });
+      %>
+      <% Object.keys(grouped).forEach((position) => {
+        const totalVotes =
+          grouped[position].reduce((sum, c) => sum + (c.votes || 0), 0) || 1;
+        const maxVotes = Math.max(...grouped[position].map((c) => c.votes || 0));
+        const winners = grouped[position].filter(
+          (c) => (c.votes || 0) === maxVotes && maxVotes > 0
+        );
+      %>
+      <div class="results-position-block" style="margin-bottom: 30px">
+        <div class="results-position-title"><%= position %></div>
+        <div class="table-container" style="margin-top: 12px">
+          <table>
+            <thead>
+              <tr>
+                <th>Candidate Name</th>
+                <th>Department</th>
+                <th>Votes</th>
+                <th>% of Votes</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% grouped[position].forEach((candidate) => {
+                const percent = ((candidate.votes || 0) / totalVotes * 100).toFixed(1);
+                const isWinner = !votingOpen && winners.some((w) => w.id === candidate.id);
+              %>
+              <tr style="<%= isWinner ? 'background-color: #d1fae5;' : '' %>">
+                <td data-label="Candidate"><%= candidate.name %></td>
+                <td data-label="Department"><%= candidate.department %></td>
+                <td data-label="Votes"><%= candidate.votes || 0 %></td>
+                <td data-label="%"><%= percent %> %</td>
+                <td data-label="Status">
+                  <% if (isWinner) { %>
+                  <span style="color: #22c55e; font-weight: 700">Winner 🏆</span>
+                  <% } else { %>
+                  &mdash;
+                  <% } %>
+                </td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <% }) %>
+      <p
+        style="max-width: 900px; margin: 24px auto 0 auto; font-size: 0.97rem; color: #14532d; text-align: center"
+      >
+        🔒 Results are automatically counted and secured by biometric verification to ensure election
+        integrity.<br />
+        For questions, please contact the electoral committee.
+      </p>
+    </section>
+
+    <!-- Email Subscription Card -->
+    <div class="email-subscribe-card" style="margin-top: 32px">
+      <h3>Get Election Results by Email</h3>
+      <form id="subscribeForm" action="/subscribe-results" method="POST">
+        <input type="email" name="email" placeholder="Enter your email" required />
+        <button type="submit">Subscribe</button>
+      </form>
+      <div class="confirmation-message" id="confirmationMsg" style="display: none">
+        Thank you! You’ll receive the results when voting ends.
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Sidebar navigation logic
+    function showSection(sectionId, link) {
+      ['dashboardSection', 'positionsSection', 'voteSection', 'resultsSection'].forEach((id) => {
+        document.getElementById(id).style.display = id === sectionId ? 'block' : 'none';
+      });
+      document.querySelectorAll('.sidebar nav a').forEach((a) => a.classList.remove('active'));
+      if (link) link.classList.add('active');
+    }
+    // Default to dashboard
+    showSection('dashboardSection', document.querySelector('.sidebar nav a'));
+
+    // Modal logic
+    function openModal(id) {
+      document.getElementById('modal-' + id).style.display = 'block';
+    }
+    function closeModal(id) {
+      document.getElementById('modal-' + id).style.display = 'none';
+    }
+    window.onclick = function (event) {
+      const modals = document.querySelectorAll('.modal');
+      modals.forEach(function (modal) {
+        if (event.target == modal) {
+          modal.style.display = 'none';
+        }
+      });
+    };
+
+    // Chart.js Bar Chart for Candidate Votes (Dashboard)
+    const candidateNames = <%- JSON.stringify((candidates || []).map((c) => c.name)) %>;
+    const candidateVotes = <%- JSON.stringify((candidates || []).map((c) => c.votes || 0)) %>;
+    const colors = ['#1070c5', '#22c55e', '#ffc107', '#dc3545', '#6c757d', '#ff9800', '#8e44ad', '#00bcd4'];
+
+    new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: {
+        labels: candidateNames,
+        datasets: [
+          {
+            label: 'Votes',
+            data: candidateVotes,
+            backgroundColor: colors,
+          },
+        ],
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+      },
+    });
+
+    // Email Subscribe Confirmation
+    document.getElementById('subscribeForm').onsubmit = function (e) {
+      e.preventDefault();
+      document.getElementById('confirmationMsg').style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('confirmationMsg').style.display = 'none';
+      }, 4000);
+      this.reset();
+    };
+  </script>
+</body>
+</html>

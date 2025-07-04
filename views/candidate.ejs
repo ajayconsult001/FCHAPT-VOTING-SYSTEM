@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Candidate Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Raleway:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #1070c5;
+      --primary-dark: #14532d;
+      --accent: #ffeb3b;
+      --success: #22c55e;
+      --bg: #f4f8fb;
+      --white: #fff;
+      --shadow: 0 4px 20px rgba(16,112,197,0.08);
+      --radius: 18px;
+      --transition: 0.2s cubic-bezier(.4,0,.2,1);
+    }
+    html { box-sizing: border-box; }
+    *, *:before, *:after { box-sizing: inherit; }
+    body {
+      margin: 0;
+      font-family: 'Raleway', Arial, sans-serif;
+      background: var(--bg);
+      color: #222;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar {
+      width: 250px;
+      background: var(--primary);
+      color: var(--white);
+      min-height: 100vh;
+      position: fixed;
+      left: 0; top: 0; bottom: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding-top: 32px;
+      box-shadow: 2px 0 12px rgba(16,112,197,0.08);
+      transition: width var(--transition);
+    }
+    .sidebar .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 24px 24px 24px;
+      width: 100%;
+      border-bottom: 1px solid #1e90ff33;
+      margin-bottom: 18px;
+    }
+    .sidebar .navbar-logo {
+      height: 40px; width: 40px; border-radius: 50%; border: 2px solid #fff; background: #fff;
+    }
+    .sidebar .college-name {
+      font-size: 1.08rem; font-weight: 700; color: #fff; white-space: normal; letter-spacing: 0.5px;
+    }
+    .sidebar nav {
+      width: 100%;
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sidebar nav a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 36px;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      border-left: 4px solid transparent;
+      border-radius: 0 24px 24px 0;
+      font-size: 1.07rem;
+      transition: background var(--transition), border-color var(--transition), color var(--transition);
+      position: relative;
+    }
+    .sidebar nav a .icon { font-size: 1.25em; }
+    .sidebar nav a.active, .sidebar nav a:hover {
+      background: #1565c0;
+      border-left: 4px solid var(--accent);
+      color: var(--accent);
+    }
+    .sidebar .logout-btn {
+      margin-top: auto;
+      margin-bottom: 32px;
+      margin-left: 24px;
+      background: var(--white);
+      color: var(--primary);
+      border: none;
+      border-radius: 6px;
+      padding: 10px 28px;
+      font-weight: 700;
+      font-size: 1.08rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(16,112,197,0.08);
+      transition: background var(--transition), color var(--transition);
+    }
+    .sidebar .logout-btn:hover {
+      background: var(--accent);
+      color: var(--primary);
+    }
+    .main-content {
+      margin-left: 250px;
+      width: calc(100% - 250px);
+      padding: 40px 40px 32px 40px;
+      min-height: 100vh;
+      background: var(--bg);
+      transition: margin-left var(--transition), width var(--transition);
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+    }
+    .dashboard-announcements { max-width: 700px; margin: 0 auto 24px auto; }
+    .announcement-card {
+      display: flex; align-items: flex-start; gap: 14px;
+      background: #eaf6fd; color: #14532d; border-radius: 10px; padding: 16px 20px; margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(16,112,197,0.07);
+      font-size: 1.07rem;
+    }
+    .announcement-icon { font-size: 1.5em; margin-right: 8px; }
+    .dashboard-help { max-width: 700px; margin: 0 auto 18px auto; }
+    .help-card {
+      display: flex; align-items: center; gap: 12px;
+      background: #fff; color: #14532d; border-radius: 10px; padding: 12px 18px; margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(16,112,197,0.04);
+      font-size: 1.02rem;
+    }
+    .help-icon { font-size: 1.3em; }
+    .candidate-header {
+      background: linear-gradient(90deg, #eaf6fd 60%, #f4f8fb 100%);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px 24px 24px 24px;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+      position: relative;
+    }
+    .candidate-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: #fff;
+      border: 4px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      font-size: 3.2rem;
+      color: var(--primary);
+      font-weight: bold;
+      box-shadow: 0 2px 12px rgba(16,112,197,0.08);
+      margin-bottom: 8px;
+    }
+    .candidate-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .candidate-info-block {
+      flex: 1;
+      min-width: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .candidate-welcome {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--primary-dark);
+      margin-bottom: 2px;
+      letter-spacing: 1px;
+      font-family: 'Montserrat', Arial, sans-serif;
+    }
+    .candidate-bio {
+      font-size: 1.08rem;
+      color: #444;
+      line-height: 1.7;
+      margin-bottom: 8px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 10px 14px;
+      box-shadow: 0 1px 4px rgba(16,112,197,0.04);
+      min-height: 36px;
+    }
+    .candidate-badges {
+      display: flex;
+      gap: 12px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      background: var(--primary);
+      color: #fff;
+      border-radius: 16px;
+      padding: 6px 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      box-shadow: 0 1px 4px rgba(16,112,197,0.08);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge-accent { background: var(--accent); color: #14532d; }
+    .badge-success { background: var(--success); color: #fff; }
+    .vote-anim {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--primary);
+      margin-top: 10px;
+      margin-bottom: 0;
+      letter-spacing: 2px;
+      font-family: 'Montserrat', Arial, sans-serif;
+      animation: popIn 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.7); opacity: 0.2; }
+      80% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+    .vote-progress-bar {
+      width: 100%;
+      max-width: 340px;
+      height: 18px;
+      background: #eaf6fd;
+      border-radius: 10px;
+      margin: 12px 0 0 0;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(16,112,197,0.04);
+      position: relative;
+    }
+    .vote-progress {
+      height: 100%;
+      background: linear-gradient(90deg, #22c55e 60%, #1070c5 100%);
+      border-radius: 10px;
+      transition: width 0.7s var(--transition);
+      font-size: 0.98rem;
+      color: #fff;
+      text-align: right;
+      padding-right: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+    }
+    .results-container {
+      background: #fff;
+      padding: 32px 18px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .results-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .results-header-row h2 {
+      margin: 0;
+      color: var(--primary);
+      font-size: 1.3rem;
+      font-family: 'Montserrat', Arial, sans-serif;
+      font-weight: 700;
+    }
+    .results-search {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1.5px solid #b5d4f4;
+      font-size: 1rem;
+      background: #f9fbfd;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      min-width: 180px;
+    }
+    .results-search:focus { border-color: var(--primary); outline: none; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 6px rgba(16,112,197,0.04);
+    }
+    th, td {
+      border: 1px solid #e1e7e3;
+      padding: 14px 16px;
+      text-align: left;
+      font-size: 1.05rem;
+    }
+    .highlight-row {
+      background-color: #e3f2fd;
+    }
+    th {
+      background-color: #eaf6fd;
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .refresh-btn {
+      background: var(--primary);
+      color: white;
+      padding: 10px 24px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1.08rem;
+      transition: background 0.2s, transform 0.2s;
+      margin-top: 8px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 8px rgba(16,112,197,0.08);
+    }
+    .refresh-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px) scale(1.03);
+    }
+    .site-footer {
+  width: 100%;
+  background: linear-gradient(90deg, #1070c5, #1174c5);
+  color: #fff;
+  font-size: 1rem;
+  padding: 0.7rem 0 0.5rem 0;
+  margin-top: auto;
+  box-shadow: 0 -2px 12px rgba(16,112,197,0.08);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.footer-content {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 18px;
+}
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.footer-links a {
+  color: #ffeb3b;
+  text-decoration: underline;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+.footer-links a:hover {
+  color: #fff;
+  text-shadow: 0 0 5px #ffeb3b;
+}
+@media (max-width: 700px) {
+  .footer-content {
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+    padding: 0 6px;
+  }
+}
+
+    @media (max-width: 900px) {
+      .sidebar { width: 60px; }
+      .main-content { margin-left: 60px; width: calc(100% - 60px); }
+      .sidebar .logo-row, .sidebar .college-name { display: none; }
+      .sidebar nav a { padding: 12px 10px; font-size: 0.95rem; }
+      .sidebar .logout-btn { margin-left: 10px; padding: 8px 12px; font-size: 0.95rem; }
+      .dashboard-container { padding: 0 6px; }
+      .candidate-header { flex-direction: column; gap: 18px; align-items: stretch; }
+    }
+    @media (max-width: 600px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; width: 100%; padding: 16px 4px; }
+      .dashboard-container { gap: 18px; }
+      .candidate-header, .results-container { padding: 14px 4px; }
+      .candidate-avatar { width: 80px; height: 80px; font-size: 2rem; }
+      th, td { font-size: 0.95rem; padding: 8px 6px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo-row">
+      <img src="/styles/assets/sug logo.jpg" alt="SUG Logo" class="navbar-logo">
+      <span class="college-name">FCAH&PT IBADAN</span>
+      <img src="/styles/assets/FCAHPT-LOGO.webp" alt="College Logo" class="navbar-logo">
+    </div>
+    <nav>
+      <a href="#dashboard" class="active"><span class="icon">🏠</span>Dashboard</a>
+      <a href="#results"><span class="icon">📊</span>Results</a>
+    </nav>
+    <form action="/candidate/logout" method="GET" style="width:100%;">
+      <button type="submit" class="logout-btn">Logout</button>
+    </form>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- 1. Announcements & Help: Only on Dashboard -->
+    <section id="dashboardSection">
+      <div class="dashboard-announcements">
+        <div class="announcement-card" role="status" aria-live="polite">
+          <span class="announcement-icon" aria-hidden="true">📢</span>
+          <div>
+            <strong>Announcement:</strong>
+            <span>
+              Voting closes <b>Friday at 5pm</b>. Make sure to check your results and encourage your supporters!
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="dashboard-help">
+        <div class="help-card" role="note">
+          <span class="help-icon" aria-hidden="true">❓</span>
+          <span>
+            <strong>Need help?</strong> See our <a href="/help" style="color:#1070c5;text-decoration:underline;">FAQ</a> or <a href="mailto:support@fcahpt.edu.ng" style="color:#1070c5;text-decoration:underline;">contact support</a>.
+          </span>
+        </div>
+        <div class="help-card" style="background:#eaf6fd;" role="note">
+          <span class="help-icon" aria-hidden="true">🔒</span>
+          <span>
+            <strong>Security:</strong> Your results are confidential and protected by biometric verification.
+          </span>
+        </div>
+      </div>
+      <div class="candidate-header">
+        <div>
+          <div class="candidate-avatar <%= candidate.pic ? '' : 'placeholder' %>">
+            <% if (candidate.pic) { %>
+              <img src="<%= candidate.pic %>" alt="<%= candidate.name %>">
+            <% } else { %>
+              <%= candidate.name.charAt(0).toUpperCase() %>
+            <% } %>
+          </div>
+          <div class="badge badge-accent" style="margin-top:6px;">
+            <span>Candidate</span>
+          </div>
+        </div>
+        <div class="candidate-info-block">
+          <div class="candidate-welcome">Welcome, <%= candidate.name %></div>
+          <div class="candidate-bio">
+            <% if (candidate.bio) { %>
+              <%= candidate.bio %>
+            <% } else { %>
+              <span style="color:#bbb;">No bio provided yet.</span>
+            <% } %>
+          </div>
+          <div class="candidate-badges">
+            <div class="badge"><span>Position:</span> <%= candidate.position %></div>
+            <div class="badge badge-success"><span>Department:</span> <%= candidate.department %></div>
+          </div>
+          <div class="vote-anim" id="voteCount"><%= candidate.votes || 0 %> Votes</div>
+          <div class="vote-progress-bar">
+            <% 
+              const totalVotes = candidates.reduce((sum, c) => sum + (c.votes || 0), 0) || 1;
+              const percent = Math.round((candidate.votes || 0) / totalVotes * 100);
+            %>
+            <div class="vote-progress" style="width:<%= percent || 0 %>%;">
+              <%= percent || 0 %>%
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Results Section: Only Results + WhatsApp -->
+    <section id="resultsSection" style="margin-top: 24px;">
+      <div class="results-container">
+        <div class="results-header-row">
+          <h2>Live Voting Results</h2>
+          <input type="text" class="results-search" id="resultsSearch" placeholder="Search candidate...">
+        </div>
+        <table id="resultsTable">
+          <thead>
+            <tr>
+              <th>Candidate</th>
+              <th>Position</th>
+              <th>Votes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% candidates.forEach(c => { %>
+              <tr class="<%= (c.id === candidate.id) ? 'highlight-row' : '' %>">
+                <td><%= c.name %></td>
+                <td><%= c.position %></td>
+                <td><%= c.votes || 0 %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <button class="refresh-btn" onclick="refreshResults()">Refresh Results</button>
+      </div>
+      <!-- 3. WhatsApp Support: Only in Results Section -->
+      <a href="https://wa.me/09024094660" target="_blank" style="margin:32px auto 0 auto;display:flex;align-items:center;gap:8px;background:#25d366;color:#fff;padding:14px 22px;border-radius:30px;font-weight:700;box-shadow:0 2px 8px rgba(16,112,197,0.13);text-decoration:none;max-width:260px;justify-content:center;">
+        <span style="font-size:1.3em;">💬</span> WhatsApp Support
+      </a>
+    </section>
+  </main>
+
+ 
+ <footer class="site-footer">
+  <div class="footer-content">
+    <span>
+      &copy; 2025 <b>Student Union Government, Federal College of Animal Health and Production Technology Ibadan</b>
+    </span>
+    <span class="footer-links">
+     
+    
+  </div>
+</footer>
+
+
+  <script>
+    function refreshResults() {
+      window.location.reload();
+    }
+    setInterval(refreshResults, 30000);
+
+    // Animated vote counter
+    document.addEventListener('DOMContentLoaded', function() {
+      var voteCount = document.getElementById('voteCount');
+      if (voteCount) {
+        var final = parseInt(voteCount.textContent);
+        var current = 0;
+        var step = Math.max(1, Math.floor(final / 30));
+        var interval = setInterval(function() {
+          if (current < final) {
+            current += step;
+            if (current > final) current = final;
+            voteCount.textContent = current + " Votes";
+          } else {
+            voteCount.textContent = final + " Votes";
+            clearInterval(interval);
+          }
+        }, 18);
+      }
+    });
+
+    // Live search for results table
+    document.getElementById('resultsSearch').addEventListener('input', function() {
+      var filter = this.value.toLowerCase();
+      var rows = document.querySelectorAll('#resultsTable tbody tr');
+      rows.forEach(function(row) {
+        var name = row.children[0].textContent.toLowerCase();
+        var position = row.children[1].textContent.toLowerCase();
+        row.style.display = (name.includes(filter) || position.includes(filter)) ? '' : 'none';
+      });
+    });
+
+    // Section navigation logic (for sidebar links)
+    document.querySelectorAll('.sidebar nav a').forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        var target = this.getAttribute('href').replace('#','') + 'Section';
+        document.getElementById('dashboardSection').style.display = (target === 'dashboardSection') ? 'block' : 'none';
+        document.getElementById('resultsSection').style.display = (target === 'resultsSection') ? 'block' : 'none';
+        document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+    // Show dashboard by default
+    document.getElementById('dashboardSection').style.display = 'block';
+    document.getElementById('resultsSection').style.display = 'none';
+  </script>
+</body>
+</html>

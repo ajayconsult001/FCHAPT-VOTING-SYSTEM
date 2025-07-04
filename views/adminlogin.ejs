@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Raleway:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Raleway', Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(120deg, #e3f0fd 0%, #f4f8fb 100%);
+      color: #222;
+    }
+    .bg-blob {
+      position: fixed;
+      z-index: 0;
+      top: -120px; left: -120px;
+      width: 420px; height: 420px;
+      background: radial-gradient(circle at 40% 40%, #1174c5 60%, #eaf6fd 100%);
+      opacity: 0.25;
+      filter: blur(60px);
+      pointer-events: none;
+    }
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 80px;
+      padding: 0 3rem;
+      background: linear-gradient(90deg, #1070c5, #1174c5);
+      box-shadow: 0 4px 12px rgba(30, 136, 229, 0.2);
+      position: relative;
+      z-index: 10;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .navbar-logo {
+      height: 48px;
+      width: 48px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 8px rgba(16, 95, 163, 0.1);
+      background: #fff;
+      transition: transform 0.3s;
+    }
+    .navbar-logo:hover {
+      transform: scale(1.1);
+    }
+    .college-name {
+      font-size: 1.12rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      text-shadow: 0 1px 6px rgba(16, 112, 197, 0.10);
+    }
+    .navbar nav a {
+      margin: 0 1.5rem;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 600;
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+    .navbar nav a.active,
+    .navbar nav a:hover {
+      color: #ffeb3b;
+      text-shadow: 0 0 5px rgba(255, 235, 59, 0.5);
+    }
+    .login-wrapper {
+      flex: 1 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      position: relative;
+      z-index: 1;
+    }
+    .login-container {
+      max-width: 370px;
+      width: 100%;
+      padding: 38px 32px 32px 32px;
+      background: rgba(255,255,255,0.82);
+      border-radius: 18px;
+      box-shadow: 0 8px 32px rgba(16,112,197,0.13);
+      margin: 40px 0;
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      border: 1.5px solid #eaf6fd;
+    }
+    .lock-icon {
+      font-size: 2.7rem;
+      color: #1070c5;
+      margin-bottom: 0.6rem;
+      animation: lockPulse 2s infinite;
+      filter: drop-shadow(0 2px 8px #eaf6fd);
+      transition: color 0.2s;
+    }
+    @keyframes lockPulse {
+      0%, 100% { transform: scale(1);}
+      50% { transform: scale(1.13);}
+    }
+    h2 {
+      text-align: center;
+      color: #1070c5;
+      margin-bottom: 1.2rem;
+      font-family: 'Montserrat', Arial, sans-serif;
+      font-weight: 800;
+      letter-spacing: 1px;
+      font-size: 1.7rem;
+    }
+    .login-desc {
+      text-align: center;
+      color: #1565c0;
+      margin-bottom: 1.3rem;
+      font-size: 1.08rem;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin: 18px 0 22px 0;
+      border: 1.5px solid #b5d4f4;
+      border-radius: 6px;
+      font-size: 1.08rem;
+      background: #f9fbfd;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    input[type="password"]:focus {
+      border-color: #1070c5;
+      outline: none;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #1070c5;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      cursor: pointer;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(16,112,197,0.08);
+      transition: background 0.2s, transform 0.2s;
+      letter-spacing: 0.5px;
+    }
+    button:hover {
+      background: #1565c0;
+      transform: translateY(-2px) scale(1.02);
+    }
+    .error {
+      color: #d32f2f;
+      text-align: center;
+      margin-bottom: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .login-hint {
+      text-align: center;
+      color: #888;
+      font-size: 0.98rem;
+      margin-top: 12px;
+      letter-spacing: 0.2px;
+    }
+    footer {
+      background: #222;
+      color: #afd6e5;
+      text-align: center;
+      padding: 1.2rem 0;
+      font-size: 1rem;
+      margin-top: auto;
+      letter-spacing: 0.5px;
+    }
+    @media (max-width: 900px) {
+      .navbar { padding: 1rem 1.5rem; }
+      .logo-row { gap: 8px; }
+      .navbar-logo { height: 36px; width: 36px; }
+      .college-name { font-size: 0.85rem; white-space: normal; text-align: center; }
+      .login-container { padding: 18px; }
+    }
+    @media (max-width: 600px) {
+      .navbar { flex-direction: column; height: auto; padding: 0.7rem 0.5rem; }
+      .logo-row { flex-direction: column; gap: 4px; }
+      .college-name { font-size: 0.95rem; }
+      .login-container { padding: 14px 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-blob"></div>
+  <header class="navbar">
+    <div class="logo-row">
+      <img src="/styles/assets/sug logo.jpg" alt="SUG Logo" class="navbar-logo">
+      <span class="college-name">
+        FEDERAL COLLEGE OF ANIMAL HEALTH AND PRODUCTION TECHNOLOGY IBADAN
+      </span>
+      <img src="/styles/assets/FCAHPT-LOGO.webp" alt="College Logo" class="navbar-logo">
+    </div>
+    <nav>
+      <a href="/" class="active">Home</a>
+      <a href="#">Contact</a>
+    </nav>
+  </header>
+
+  <div class="login-wrapper">
+    <form action="/admin/login" method="post" autocomplete="off" class="login-container">
+      <div class="lock-icon" aria-hidden="true">🔒</div>
+      <h2>Admin Login</h2>
+      <div class="login-desc"><br>Enter your secure password below.</div>
+      <% if (error) { %>
+        <div class="error"><%= error %></div>
+      <% } %>
+      <input type="password" name="password" placeholder="Admin password" required autocomplete="current-password">
+      <button type="submit">Login</button>
+      
+    </form>
+  </div>
+
+  <footer>
+    © <%= new Date().getFullYear() %> FCAH&PT Electoral Commission. All rights reserved.
+  </footer>
+</body>
+</html>

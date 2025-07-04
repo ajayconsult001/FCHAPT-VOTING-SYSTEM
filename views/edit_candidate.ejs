@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Candidate</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f8fb;
+      color: #222;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 80px;
+      padding: 0 3rem;
+      background: linear-gradient(90deg, #1070c5, #1174c5);
+      box-shadow: 0 4px 12px rgba(30, 136, 229, 0.2);
+      position: relative;
+      z-index: 10;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .navbar-logo {
+      height: 48px;
+      width: 48px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 8px rgba(16, 95, 163, 0.1);
+      background: #fff;
+      transition: transform 0.3s;
+    }
+    .navbar-logo:hover {
+      transform: scale(1.1);
+    }
+    .college-name {
+      font-size: 1.12rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      text-shadow: 0 1px 6px rgba(16, 112, 197, 0.10);
+    }
+    .navbar nav a {
+      margin: 0 1.5rem;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 600;
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+    .navbar nav a.active,
+    .navbar nav a:hover {
+      color: #ffeb3b;
+      text-shadow: 0 0 5px rgba(255, 235, 59, 0.5);
+    }
+    .edit-wrapper {
+      flex: 1 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+    }
+    .edit-container {
+      max-width: 400px;
+      width: 100%;
+      padding: 30px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+      margin: 40px 0;
+    }
+    h2 {
+      text-align: center;
+      color: #1070c5;
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #1070c5;
+      font-weight: 500;
+    }
+    input[type="text"],
+    textarea,
+    input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 18px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
+    .candidate-pic {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .candidate-pic img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 2px solid #1070c5;
+      object-fit: cover;
+      box-shadow: 0 2px 8px rgba(16, 112, 197, 0.15);
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #1070c5;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #1565c0;
+    }
+    .error {
+      color: #d32f2f;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 12px;
+      color: #1070c5;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .back-link:hover {
+      color: #1565c0;
+      text-decoration: underline;
+    }
+    footer {
+      background: #222;
+      color: #afd6e5;
+      text-align: center;
+      padding: 1.2rem 0;
+      font-size: 1rem;
+      margin-top: auto;
+    }
+    @media (max-width: 900px) {
+      .navbar {
+        padding: 1rem 1.5rem;
+      }
+      .logo-row {
+        gap: 8px;
+      }
+      .navbar-logo {
+        height: 36px;
+        width: 36px;
+      }
+      .college-name {
+        font-size: 0.85rem;
+        white-space: normal;
+        text-align: center;
+      }
+      .edit-container {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+<header class="navbar">
+  <div class="logo-row">
+    <img src="/styles/assets/sug logo.jpg" alt="SUG Logo" class="navbar-logo">
+    <span class="college-name">
+      FEDERAL COLLEGE OF ANIMAL HEALTH AND PRODUCTION TECHNOLOGY IBADAN
+    </span>
+    <img src="/styles/assets/FCAHPT-LOGO.webp" alt="College Logo" class="navbar-logo">
+  </div>
+  <nav>
+    <a href="/" class="active">Home</a>
+    <a href="#">Contact</a>
+  </nav>
+</header>
+
+<div class="edit-wrapper">
+  <form action="/admin/candidate/edit/<%= candidate.id %>" method="POST" enctype="multipart/form-data" class="edit-container">
+    <h2>Edit Candidate</h2>
+    <% if (error) { %>
+      <div class="error"><%= error %></div>
+    <% } %>
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" value="<%= candidate.name %>" required>
+    
+    <label for="bio">Bio:</label>
+    <textarea id="bio" name="bio"><%= candidate.bio %></textarea>
+    
+    <label for="pic">Picture:</label>
+    <div class="candidate-pic">
+      <% if (candidate.pic) { %>
+        <img src="<%= candidate.pic %>" alt="Current Pic">
+      <% } else { %>
+        <span style="color:#888;font-size:0.95em;">No picture uploaded</span>
+      <% } %>
+    </div>
+    <input type="file" id="pic" name="pic">
+    
+    <button type="submit">Update Candidate</button>
+    <a href="/admin" class="back-link">← Back to Admin</a>
+  </form>
+</div>
+
+<footer>
+  © <%= new Date().getFullYear() %> FCAH&PT Electoral Commission. All rights reserved.
+</footer>
+</body>
+</html>

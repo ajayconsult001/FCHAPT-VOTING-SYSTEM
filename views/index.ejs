@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Get Started</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Raleway:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Raleway', Arial, sans-serif;
+      min-height: 100vh;
+      background: #f4f8fb;
+      color: #222;
+      display: flex;
+      flex-direction: column;
+    }
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 80px;
+      padding: 0 2rem;
+      background: linear-gradient(90deg, #1070c5, #1174c5);
+      box-shadow: 0 4px 12px rgba(30, 136, 229, 0.2);
+      z-index: 10;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .navbar-logo {
+      height: 44px;
+      width: 44px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(16, 95, 163, 0.1);
+    }
+    .college-name {
+      font-size: 1.08rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      text-shadow: 0 1px 6px rgba(16, 112, 197, 0.10);
+    }
+    .navbar nav a {
+      margin: 0 1.2rem;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 600;
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+    .navbar nav a.active,
+    .navbar nav a:hover {
+      color: #ffeb3b;
+      text-shadow: 0 0 5px rgba(255, 235, 59, 0.5);
+    }
+    main.get-started-main {
+      flex: 1 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 70vh;
+      position: relative;
+      z-index: 2;
+      padding: 40px 2vw 0 2vw;
+    }
+    .role-grid {
+      display: flex;
+      flex-direction: row;
+      gap: 2.5rem;
+      align-items: flex-end;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+    .role-card {
+      background: #fff;
+      color: #1070c5;
+      width: 200px;
+      height: 200px;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px rgba(16,112,197,0.13);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.3rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.3s, box-shadow 0.3s, background 0.2s;
+      user-select: none;
+      position: relative;
+      border: 3px solid transparent;
+      margin: 0 0.5rem;
+    }
+    .role-card.voter {
+      background: linear-gradient(120deg, #1070c5 70%, #22c55e 100%);
+      color: #fff;
+      font-size: 1.5rem;
+      border: 3px solid #22c55e;
+      z-index: 2;
+      box-shadow: 0 12px 40px rgba(34,197,94,0.13);
+      min-width: 220px;
+      min-height: 220px;
+      animation: popIn 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    .role-card span {
+      font-size: 2.8rem;
+      margin-bottom: 0.7rem;
+      display: block;
+      filter: drop-shadow(0 2px 10px #22c55e88);
+    }
+    .role-card .role-label {
+      font-size: 1.02rem;
+      font-weight: 400;
+      margin-top: 10px;
+      color: #fff;
+      opacity: 0.85;
+      letter-spacing: 0.5px;
+    }
+    .role-card:not(.voter) .role-label {
+      color: #1070c5;
+      opacity: 0.7;
+    }
+    .role-card:not(.voter) {
+      background: #eaf6fd;
+      color: #1070c5;
+      border: 2px solid #eaf6fd;
+      min-width: 160px;
+      min-height: 160px;
+      font-size: 1.13rem;
+      margin-top: 40px;
+    }
+    .role-card:hover, .role-card:focus {
+      transform: scale(1.04) translateY(-5px);
+      box-shadow: 0 16px 40px rgba(16,112,197,0.23);
+      background: #eaf6fd;
+      color: #1070c5;
+    }
+    .role-card.voter:hover, .role-card.voter:focus {
+      background: linear-gradient(120deg, #1565c0 60%, #22c55e 100%);
+      color: #fff;
+    }
+    .role-card:not(.voter):hover, .role-card:not(.voter):focus {
+      background: #1070c5;
+      color: #fff;
+      border: 2px solid #1070c5;
+    }
+    .quick-note {
+      margin-top: 36px;
+      color: #14532d;
+      font-size: 1.08rem;
+      text-align: center;
+      opacity: 0.8;
+    }
+    footer {
+      flex-shrink: 0;
+      background: #222;
+      color: #afd6e5;
+      text-align: center;
+      padding: 1.2rem 0;
+      font-size: 1rem;
+      z-index: 10;
+      margin-top: auto;
+    }
+    .footer-links {
+      margin-left: 10px;
+    }
+    .footer-links a {
+      color: #ffeb3b;
+      text-decoration: underline;
+      font-weight: 600;
+      margin: 0 6px;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover {
+      color: #fff;
+      text-shadow: 0 0 5px #ffeb3b;
+    }
+    @media (max-width: 900px) {
+      .navbar { padding: 1rem 1rem; }
+      .logo-row { gap: 8px; }
+      .navbar-logo { height: 36px; width: 36px; }
+      .college-name { font-size: 0.85rem; white-space: normal; text-align: center; }
+      .role-grid { gap: 1.2rem; flex-direction: column; align-items: center; }
+      .role-card { width: 90vw; max-width: 320px; height: 140px; font-size: 1.1rem; }
+      .role-card span { font-size: 2.1rem; }
+    }
+    @media (max-width: 600px) {
+      main.get-started-main { padding: 20px 2vw 0 2vw; }
+      .role-card { height: 110px; font-size: 1rem; }
+      .role-card span { font-size: 1.5rem; }
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.7); opacity: 0.2; }
+      80% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="logo-row">
+      <img src="/styles/assets/sug logo.jpg" alt="SUG Logo" class="navbar-logo">
+      <span class="college-name">
+        FEDERAL COLLEGE OF ANIMAL HEALTH AND PRODUCTION TECHNOLOGY IBADAN
+      </span>
+      <img src="/styles/assets/FCAHPT-LOGO.webp" alt="College Logo" class="navbar-logo">
+    </div>
+    <nav>
+      <a href="/" class="active">Home</a>
+      <a href="#">Contact</a>
+    </nav>
+  </header>
+
+  <main class="get-started-main">
+    <div class="role-grid">
+      <a href="/voters/login" class="role-card voter" aria-label="Voter Login">
+        <span>👤</span>
+        VOTERS
+        <div class="role-label">Vote or check your result</div>
+      </a>
+      <a href="/candidate/login" class="role-card" aria-label="Candidate Login">
+        <span>🏅</span>
+        CANDIDATES
+        <div class="role-label">Candidate dashboard</div>
+      </a>
+      <a href="/admin/login" class="role-card" aria-label="Admin Login">
+        <span>🛡️</span>
+        ADMIN
+        <div class="role-label">Admin panel</div>
+      </a>
+    </div>
+    <div class="quick-note">
+     
+    </div>
+  </main>
+
+  <footer>
+    &copy; <%= new Date().getFullYear() %> FCAH&PT Electoral Commission.
+    <span class="footer-links">
+      <a href="/help">FAQ</a>|
+      <a href="mailto:support@fcahpt.edu.ng">Support</a>
+    </span>
+    All rights reserved.
+  </footer>
+</body>
+</html>

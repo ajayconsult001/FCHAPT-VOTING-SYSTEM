@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voter Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Raleway:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1070c5;
+      --primary-dark: #14532d;
+      --accent: #ffeb3b;
+      --bg: #f4f8fb;
+      --white: #fff;
+      --radius: 14px;
+      --shadow: 0 4px 20px rgba(16,112,197,0.08);
+      --transition: 0.2s cubic-bezier(.4,0,.2,1);
+    }
+    body {
+      margin: 0;
+      font-family: 'Raleway', Arial, sans-serif;
+      min-height: 100vh;
+      background: var(--bg);
+      color: #222;
+      display: flex;
+      flex-direction: column;
+    }
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 80px;
+      padding: 0 3rem;
+      background: linear-gradient(90deg, #1070c5, #1174c5);
+      box-shadow: 0 4px 12px rgba(30, 136, 229, 0.2);
+      position: relative;
+      z-index: 10;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .navbar-logo {
+      height: 48px;
+      width: 48px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 8px rgba(16, 95, 163, 0.1);
+      background: #fff;
+      transition: transform 0.3s;
+    }
+    .college-name {
+      font-size: 1.12rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      text-shadow: 0 1px 6px rgba(16, 112, 197, 0.10);
+    }
+    .navbar nav a {
+      margin: 0 1.5rem;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 600;
+      transition: color 0.3s, text-shadow 0.3s;
+      border-bottom: 2px solid transparent;
+      padding-bottom: 2px;
+    }
+    .navbar nav a.active,
+    .navbar nav a:hover {
+      color: var(--accent);
+      text-shadow: 0 0 5px rgba(255, 235, 59, 0.5);
+      border-bottom: 2px solid var(--accent);
+    }
+    .login-wrapper {
+      flex: 1 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      padding: 40px 0 0 0;
+      background: none;
+    }
+    .login-container {
+      background: var(--white);
+      padding: 38px 32px 32px 32px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      width: 100%;
+      max-width: 410px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .login-icon {
+      font-size: 2.3rem;
+      color: var(--primary);
+      margin-bottom: 0.7rem;
+      filter: drop-shadow(0 2px 8px #eaf6fd);
+      transition: color 0.2s;
+    }
+    h2 {
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 1.2rem;
+      font-size: 1.7rem;
+      font-family: 'Montserrat', Arial, sans-serif;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+    label {
+      display: block;
+      margin-bottom: 9px;
+      font-size: 1.09rem;
+      color: var(--primary);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 20px;
+      border: 1.5px solid #b5d4f4;
+      border-radius: 6px;
+      font-size: 1.08rem;
+      box-sizing: border-box;
+      font-family: inherit;
+      background: #f9fbfd;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+    button {
+      background: var(--primary);
+      color: var(--white);
+      padding: 14px 0;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1.13rem;
+      margin-top: 10px;
+      transition: background 0.2s, transform 0.2s;
+      width: 100%;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 8px rgba(16,112,197,0.08);
+    }
+    button:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px) scale(1.02);
+    }
+    .error-message {
+      color: #d32f2f;
+      background: #ffeaea;
+      padding: 12px;
+      border-radius: 7px;
+      margin-bottom: 18px;
+      text-align: center;
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      border: 1.5px solid #f8b1b1;
+    }
+    .login-hint {
+      text-align: center;
+      color: #888;
+      font-size: 0.98rem;
+      margin-top: 12px;
+      letter-spacing: 0.2px;
+    }
+    footer {
+      background: #222;
+      color: #afd6e5;
+      text-align: center;
+      padding: 1.2rem 0;
+      font-size: 1rem;
+      margin-top: auto;
+      letter-spacing: 0.5px;
+    }
+    @media (max-width: 900px) {
+      .navbar {
+        padding: 1rem 1.5rem;
+      }
+      .logo-row {
+        gap: 8px;
+      }
+      .navbar-logo {
+        height: 36px;
+        width: 36px;
+      }
+      .college-name {
+        font-size: 0.85rem;
+        white-space: normal;
+        text-align: center;
+      }
+      .login-container {
+        padding: 18px 8px;
+      }
+    }
+    @media (max-width: 600px) {
+      .navbar { flex-direction: column; height: auto; padding: 0.7rem 0.5rem; }
+      .logo-row { flex-direction: column; gap: 4px; }
+      .college-name { font-size: 0.95rem; }
+      .login-container { padding: 14px 4px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="logo-row">
+      <img src="/styles/assets/sug logo.jpg" alt="SUG Logo" class="navbar-logo">
+      <span class="college-name">
+        FEDERAL COLLEGE OF ANIMAL HEALTH AND PRODUCTION TECHNOLOGY IBADAN
+      </span>
+      <img src="/styles/assets/FCAHPT-LOGO.webp" alt="College Logo" class="navbar-logo">
+    </div>
+    <nav>
+      <a href="/" class="active">Home</a>
+      <a href="#">Contact</a>
+    </nav>
+  </header>
+
+  <div class="login-wrapper">
+    <div class="login-container">
+      <div class="login-icon" aria-hidden="true">✅</div>
+      <h2>HEY MOORITE</h2>
+      <% if (error) { %>
+        <div class="error-message"><%= error %></div>
+      <% } %>
+      <form action="/voters/login" method="POST" autocomplete="off">
+        <label for="matric_number">Matric Number</label>
+        <input type="text" name="matric_number" id="matric_number" required autocomplete="username">
+
+        <label for="receipt_id">Receipt ID</label>
+        <input type="text" name="receipt_id" id="receipt_id" required autocomplete="off">
+
+        <button type="submit">Login</button>
+      </form>
+      
+    </div>
+  </div>
+
+  <footer>
+    &copy; <%= new Date().getFullYear() %> FCAH&PT Electoral Commission. All rights reserved.
+  </footer>
+</body>
+</html>

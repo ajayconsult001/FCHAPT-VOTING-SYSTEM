@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Raleway:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1070c5;
+      --primary-dark: #14532d;
+      --accent: #ffeb3b;
+      --bg: #f4f8fb;
+      --white: #fff;
+      --shadow: 0 4px 20px rgba(16,112,197,0.08);
+      --radius: 14px;
+      --transition: 0.2s cubic-bezier(.4,0,.2,1);
+    }
+    body {
+      margin: 0;
+      font-family: 'Raleway', Arial, sans-serif;
+      background: var(--bg);
+      color: #222;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: row;
+    }
+    /* SIDEBAR */
+    .sidebar {
+      width: 240px;
+      background: var(--primary);
+      color: var(--white);
+      min-height: 100vh;
+      position: fixed;
+      left: 0; top: 0; bottom: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transition: width var(--transition);
+      box-shadow: 2px 0 12px rgba(16,112,197,0.08);
+    }
+    .sidebar.collapsed { width: 60px; }
+    .sidebar-header {
+      display: flex; align-items: center; padding: 18px 16px;
+      font-size: 1.2rem; font-weight: bold; background: #1565c0; justify-content: space-between;
+    }
+    .sidebar-toggle { cursor: pointer; font-size: 1.5rem; margin-right: 10px; user-select: none; }
+    .sidebar-title { flex: 1; margin-left: 10px; white-space: nowrap; }
+    .sidebar-menu { list-style: none; padding: 0; margin: 0; flex: 1; }
+    .sidebar-menu li { margin: 0; }
+    .sidebar-menu a {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 28px; color: #fff; text-decoration: none;
+      font-size: 1.09rem; transition: background var(--transition), border-color var(--transition), color var(--transition);
+      border-left: 4px solid transparent; border-radius: 0 24px 24px 0;
+      font-weight: 600;
+      position: relative;
+    }
+    .sidebar-menu a span { font-size: 1.3em; }
+    .sidebar-menu a.active, .sidebar-menu a:hover {
+      background: #1565c0;
+      border-left: 4px solid var(--accent);
+      color: var(--accent);
+    }
+    .sidebar-menu a:active { background: #0e5ca7; }
+    .sidebar-menu a:last-child { margin-bottom: 12px; }
+    /* MAIN CONTENT */
+    .main-content {
+      margin-left: 240px;
+      flex: 1 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: margin-left var(--transition);
+      background: var(--bg);
+    }
+    .sidebar.collapsed ~ .main-content { margin-left: 60px; }
+    .navbar {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 80px; padding: 0 3rem;
+      background: linear-gradient(90deg, #1070c5, #1174c5);
+      box-shadow: 0 4px 12px rgba(30, 136, 229, 0.2);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .logo-row { display: flex; align-items: center; gap: 18px; }
+    .navbar-logo {
+      height: 48px; width: 48px; object-fit: cover; border-radius: 50%;
+      border: 3px solid #fff; box-shadow: 0 2px 8px rgba(16, 95, 163, 0.1);
+      background: #fff; transition: transform 0.3s;
+    }
+    .navbar-logo:hover { transform: scale(1.1); }
+    .college-name {
+      font-size: 1.12rem; font-weight: 700; color: #fff;
+      letter-spacing: 0.5px; white-space: nowrap;
+      text-shadow: 0 1px 6px rgba(16, 112, 197, 0.10);
+    }
+    .navbar nav a {
+      margin: 0 1.5rem; text-decoration: none; color: #fff; font-weight: 600;
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+    .navbar nav a.active, .navbar nav a:hover {
+      color: var(--accent); text-shadow: 0 0 5px rgba(255, 235, 59, 0.5);
+    }
+    .dashboard-wrapper {
+      flex: 1 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 60vh;
+      padding: 40px 20px;
+    }
+    .dashboard-container {
+      width: 100%;
+      max-width: 1150px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 42px;
+    }
+    .dashboard-cards {
+      display: flex;
+      gap: 32px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+    }
+    .dashboard-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px 36px;
+      min-width: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      transition: box-shadow var(--transition), transform var(--transition);
+    }
+    .dashboard-card:hover {
+      box-shadow: 0 8px 32px rgba(16,112,197,0.14);
+      transform: translateY(-4px) scale(1.02);
+    }
+    .dashboard-card .card-title { font-size: 1.12rem; color: var(--primary); font-weight: 600; margin-bottom: 8px; }
+    .dashboard-card .card-value { font-size: 2.3rem; font-weight: 800; color: var(--primary-dark); }
+    .form-container, .table-container {
+      background: var(--white);
+      padding: 32px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 0;
+      width: 100%;
+      box-sizing: border-box;
+      transition: box-shadow var(--transition), transform var(--transition);
+    }
+    .form-container:hover, .table-container:hover {
+      box-shadow: 0 8px 32px rgba(16,112,197,0.13);
+      transform: translateY(-2px) scale(1.01);
+    }
+    h1, h2 {
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 2.2rem;
+      font-family: 'Montserrat', Arial, sans-serif;
+      letter-spacing: 1px;
+    }
+    h2 {
+      font-size: 1.6rem;
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 1.11rem;
+      color: var(--primary);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    input[type="text"], input[type="file"], select, textarea {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1.07rem;
+      box-sizing: border-box;
+      font-family: inherit;
+      background: #f9fbfd;
+      transition: border-color var(--transition);
+    }
+    input[type="text"]:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+    button, input[type="submit"], input[type="button"] {
+      background: var(--primary);
+      color: var(--white);
+      padding: 14px 28px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1.08rem;
+      margin-top: 10px;
+      transition: background var(--transition), transform var(--transition);
+    }
+    button:hover, input[type="submit"]:hover, input[type="button"]:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px) scale(1.01);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 1.07rem;
+      background: var(--white);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(16,112,197,0.06);
+    }
+    th, td {
+      border: 1px solid #e1e7e3;
+      padding: 16px;
+      text-align: left;
+    }
+    th {
+      background-color: #eaf6fd;
+      color: var(--primary);
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+    .circular-image {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid var(--primary);
+      box-shadow: 0 2px 8px rgba(16, 112, 197, 0.10);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--white);
+    }
+    .circular-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .section { width: 100%; }
+    footer {
+      text-align: center;
+      color: #666;
+      font-size: 1.04rem;
+      margin: 30px 0 10px 0;
+      letter-spacing: 0.5px;
+    }
+    @media (max-width: 900px) {
+      .dashboard-container { padding: 0 20px; gap: 30px; }
+      .form-container, .table-container { padding: 24px 10px; }
+      h1 { font-size: 1.7rem; }
+      h2 { font-size: 1.2rem; }
+      .sidebar { width: 60px; }
+      .main-content { margin-left: 60px; }
+      .sidebar-header .sidebar-title { display: none; }
+      .sidebar-menu a { padding: 14px 10px; font-size: 0.95rem; }
+    }
+    @media (max-width: 600px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; width: 100%; padding: 8px 2px; }
+      .dashboard-cards { flex-direction: column; gap: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-toggle" id="sidebarToggle">&#9776;</span>
+      <span class="sidebar-title">Admin</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="#" onclick="showSection('dashboardSection')" class="active" id="link-dashboard"><span>🏠</span> Dashboard</a></li>
+      <li><a href="#" onclick="showSection('candidatesSection')" id="link-candidates"><span>👤</span> Candidates</a></li>
+      <li><a href="#" onclick="showSection('addVoterSection')" id="link-addvoter"><span>🗳</span> Add Voter</a></li>
+      <li><a href="#" onclick="showSection('eligibleVotersSection')" id="link-eligible"><span>✅</span> Eligible Voters</a></li>
+      <li><a href="#" onclick="showSection('logsSection')" id="link-logs"><span>📜</span> Logs</a></li>
+      <li><a href="/admin/logout"><span>🚪</span> Logout</a></li>
+    </ul>
+  </div>
+
+  <div class="main-content" id="mainContent">
+    <header class="navbar">
+      <div class="logo-row">
+        <img src="/styles/assets/sug logo.jpg" alt="SUG Logo" class="navbar-logo">
+        <span class="college-name">
+          FEDERAL COLLEGE OF ANIMAL HEALTH AND PRODUCTION TECHNOLOGY IBADAN
+        </span>
+        <img src="/styles/assets/FCAHPT-LOGO.webp" alt="College Logo" class="navbar-logo">
+      </div>
+      <nav>
+        <a href="/" class="active">Home</a>
+        <a href="#">Contact</a>
+      </nav>
+    </header>
+
+    <div class="dashboard-wrapper">
+      <div class="dashboard-container">
+        <% if (error) { %>
+          <p style="color: red; text-align:center;"><%= error %></p>
+        <% } %>
+
+        <!-- Dashboard Section (default) -->
+        <div id="dashboardSection" class="section">
+          <h1>Admin Dashboard</h1>
+          <div class="dashboard-cards">
+            <div class="dashboard-card">
+              <div class="card-title">Total Candidates</div>
+              <div class="card-value"><%= candidates ? candidates.length : 0 %></div>
+            </div>
+            <div class="dashboard-card">
+              <div class="card-title">Eligible Voters</div>
+              <div class="card-value"><%= preRegistered ? preRegistered.length : 0 %></div>
+            </div>
+            <div class="dashboard-card">
+              <div class="card-title">Logs</div>
+              <div class="card-value"><%= logs ? logs.length : 0 %></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Candidates Section -->
+<div id="candidatesSection" class="section" style="display:none;">
+  <div class="form-container">
+    <h2>Add Candidate</h2>
+    <form action="/admin/candidate/add" method="POST" enctype="multipart/form-data">
+      <label for="id">Candidate ID:</label>
+      <input type="text" id="id" name="id" required>
+
+      <label for="name">Name:</label>
+      <input type="text" id="name" name="name" required>
+
+
+<label for="position">Position:</label>
+<select id="position" name="position" required>
+  <option value="" disabled selected>Select Position</option>
+  <option value="President">President</option>
+  <option value="Vice President">Vice President</option>
+  <option value="Secretary">Secretary</option>
+  <option value="PRO">Public Relations Officer</option>
+  <option value="Treasurer">Treasurer</option>
+  <!-- Add more positions as needed -->
+</select>
+
+<label for="department">Department:</label>
+<select id="department" name="department[]" multiple required>
+  <option value="Computer Science">Computer Science</option>
+  <option value="Animal Health">Animal Health</option>
+  <option value="Science Laboratory Technology">Science Laboratory Technology</option>
+  <option value="Agricultural Extension">Agricultural Extension</option>
+  <!-- Add more departments as needed -->
+</select>
+<small style="color:#666;">Hold Ctrl (Windows) or Cmd (Mac) to select multiple departments.</small>
+
+<label for="level">Level:</label>
+<select id="level" name="level[]" multiple required>
+  <option value="ND1">ND1</option>
+  <option value="ND2">ND2</option>
+  <option value="HND1">HND1</option>
+  <option value="HND2">HND2</option>
+  <!-- Add more levels as needed -->
+</select>
+<small style="color:#666;">Hold Ctrl (Windows) or Cmd (Mac) to select multiple levels.</small>
+
+<label for="experience">Experience:</label>
+<textarea id="experience" name="experience" placeholder="Leadership roles, club positions, volunteer work"></textarea>
+
+<label for="achievements">Achievements:</label>
+<textarea id="achievements" name="achievements" placeholder="Awards, recognitions, successful projects"></textarea>
+
+<label for="vision">Vision:</label>
+<textarea id="vision" name="vision" placeholder="What do you want to achieve if elected?"></textarea>
+
+
+<label for="manifesto">Manifesto/Platform:</label>
+<textarea id="manifesto" name="manifesto" placeholder="Key pledges or campaign promises"></textarea>
+
+<label for="skills">Skills:</label>
+<input type="text" id="skills" name="skills" placeholder="e.g. Communication, Problem-solving">
+
+<label for="motto">Motto/Quote:</label>
+<input type="text" id="motto" name="motto" placeholder="Optional personal motto or quote">
+
+<label for="extracurricular">Extracurricular Activities:</label>
+<textarea id="extracurricular" name="extracurricular" placeholder="Clubs, sports, community involvement"></textarea>
+
+<label for="academic_achievements">Academic Achievements:</label>
+<textarea id="academic_achievements" name="academic_achievements" placeholder="Scholarships, high GPA, honors"></textarea>
+
+
+      <label for="contact">Contact:</label>
+      <input type="email" id="contact" name="contact" placeholder="Email">
+
+      <label for="social_media">Social Media:</label>
+      <input type="text" id="social_media" name="social_media" placeholder="Instagram, Twitter, etc.">
+
+      <label for="pic">Picture:</label>
+      <input type="file" id="pic" name="pic">
+
+      <button type="submit">Add Candidate</button>
+    </form>
+  </div>
+          <div class="table-container">
+            <h2>Candidates</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Picture</th>
+                  <th>Name</th>
+                  <th>Position</th>
+                  <th>Department</th>
+                  <th>Level</th>
+                  <th>Experience</th>
+                  <th>Achievements</th>
+                  <th>Vision</th>
+                  <th>Votes</th>
+                  <th>Edit</th>
+                  <th>Delete</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (typeof candidates !== 'undefined' && candidates.length > 0) { %>
+                  <% candidates.forEach(candidate => { %>
+                    <tr>
+                      <td><%= candidate.id %></td>
+                      <td>
+                        <% if (candidate.pic) { %>
+                          <div class="circular-image">
+                            <img src="<%= candidate.pic %>" alt="Pic">
+                          </div>
+                        <% } %>
+                      </td>
+                      <td><%= candidate.name %></td>
+                      <td><%= candidate.position %></td>
+                      <td><%= candidate.department %></td>
+                      <td><%= candidate.level %></td>
+                      <td><%= candidate.experience %></td>
+                      <td><%= candidate.achievements %></td>
+                      <td><%= candidate.vision %></td>
+                      <td><%= candidate.votes %></td>
+                      <td>
+                        <form action="/admin/candidate/edit/<%= candidate.id %>" method="GET" style="display:inline;">
+                          <button type="submit">Edit</button>
+                        </form>
+                      </td>
+                      <td>
+                        <form action="/admin/candidate/delete" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this candidate?');">
+                          <input type="hidden" name="id" value="<%= candidate.id %>">
+                          <button type="submit" style="color:red;">Delete</button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="13" style="text-align:center;">No candidates found.</td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Add Voter Section -->
+        <div id="addVoterSection" class="section" style="display:none;">
+          <div class="form-container">
+            <h2>Register Fingerprint (Biometric)</h2>
+            <button onclick="registerFingerprint()">Register Fingerprint</button>
+            <p style="color:#888; font-size:0.95em; margin-top:8px;">
+              This will use your device's biometric sensor (fingerprint, Windows Hello, etc).
+            </p>
+          </div>
+          <div class="form-container">
+            <h2>Add Voter</h2>
+            <form action="/admin/voter/add" method="POST">
+              <label>Fingerprint Scan:</label>
+              <button type="button" onclick="generateFingerprintID()">Scan Fingerprint</button>
+              <label for="fingerprint_id">Fingerprint ID:</label>
+              <input type="text" id="fingerprint_id" name="fingerprint_id" readonly required placeholder="Click 'Scan Fingerprint'">
+              <button type="submit">Add Voter</button>
+            </form>
+          </div>
+          <div class="form-container">
+            <h2>Eligible voters</h2>
+            <form action="/admin/pre-register-student" method="POST">
+              <label for="name">Name:</label>
+              <input type="text" name="name" required>
+              <label for="receipt_id">Receipt ID:</label>
+              <input type="text" name="receipt_id" required>
+              <label for="department">Department:</label>
+              <select name="department" id="department" required>
+                <option value="" disabled selected>-- Select Department --</option>
+                <option value="COM">Computer Science</option>
+                <option value="AHT">Animal Health</option>
+                <option value="SLT">Science Laboratory Technology</option>
+              </select><br>
+              <label for="level">Level:</label>
+              <select name="level" id="level" required>
+                <option value="" disabled selected>-- Select Level --</option>
+                <option value="ND1">ND1</option>
+                <option value="ND2">ND2</option>
+                <option value="HND1">HND1</option>
+                <option value="HND2">HND2</option>
+              </select><br>
+              <label for="student_type">Student Type:</label>
+              <select name="student_type" id="student_type" required>
+                <option value="" disabled selected>-- Select Type --</option>
+                <option value="FT">Full-Time</option>
+                <option value="PT">Part-Time</option>
+              </select><br>
+              <label for="matric_number">Matric Number:</label>
+              <input type="text" name="matric_number" required style="width: 100%;">
+              <button type="submit">Add voter</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Eligible Voters Section -->
+        <div id="eligibleVotersSection" class="section" style="display:none;">
+          <div class="table-container">
+            <h2>Accredited Voters</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Matric Number</th>
+                  <th>Name</th>
+                  <th>Receipt ID</th>
+                  <th>Department</th>
+                  <th>Level</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (typeof preRegistered !== 'undefined' && preRegistered.length > 0) { %>
+                  <% preRegistered.forEach(student => { %>
+                    <tr>
+                      <td><%= student.matric_number %></td>
+                      <td><%= student.name %></td>
+                      <td><%= student.receipt_id %></td>
+                      <td><%= student.department %></td>
+                      <td><%= student.level %></td>
+                      <td>
+                        <form action="/admin/pre-register-student/edit/<%= student.id %>" method="get" style="display:inline;">
+                          <button type="submit">Edit</button>
+                        </form>
+                        <form action="/admin/pre-register-student/delete/<%= student.id %>" method="post" style="display:inline;" onsubmit="return confirm('Delete this student?');">
+                          <button type="submit">Delete</button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="6" style="text-align:center;">No pre-registered students found.</td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Logs Section -->
+        <div id="logsSection" class="section" style="display:none;">
+          <div class="table-container">
+            <h2>Logs</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Details</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% logs.forEach(log => { %>
+                  <tr>
+                    <td><%= log.action %></td>
+                    <td><%= log.details %></td>
+                    <td><%= log.log_time %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      &copy; 2025 Federal College of Animal Health and Production Technology Ibadan. All rights reserved.
+    </footer>
+  </div>
+
+  <script>
+    // Sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    sidebarToggle.addEventListener('click', function() {
+      sidebar.classList.toggle('collapsed');
+    });
+
+    // Section navigation logic
+    const sections = [
+      'dashboardSection',
+      'candidatesSection',
+      'addVoterSection',
+      'eligibleVotersSection',
+      'logsSection'
+    ];
+    const links = [
+      'link-dashboard',
+      'link-candidates',
+      'link-addvoter',
+      'link-eligible',
+      'link-logs'
+    ];
+    function showSection(id) {
+      sections.forEach(sectionId => {
+        document.getElementById(sectionId).style.display = (sectionId === id) ? 'block' : 'none';
+      });
+      links.forEach(linkId => {
+        document.getElementById(linkId).classList.remove('active');
+      });
+      // Set active link
+      if (id === 'dashboardSection') document.getElementById('link-dashboard').classList.add('active');
+      if (id === 'candidatesSection') document.getElementById('link-candidates').classList.add('active');
+      if (id === 'addVoterSection') document.getElementById('link-addvoter').classList.add('active');
+      if (id === 'eligibleVotersSection') document.getElementById('link-eligible').classList.add('active');
+      if (id === 'logsSection') document.getElementById('link-logs').classList.add('active');
+    }
+    // Show dashboard by default
+    showSection('dashboardSection');
+
+    function registerFingerprint() {
+      alert('Fingerprint registration feature coming soon!');
+    }
+    function generateFingerprintID() {
+      const id = 'FP-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+      document.getElementById('fingerprint_id').value = id;
+    }
+  </script>
+</body>
+</html>
