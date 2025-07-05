@@ -564,7 +564,13 @@
               </div>
               <div class="candidate-info">
                 <h3><%= candidate.name %></h3>
-                <p><%= candidate.bio.length > 100 ? candidate.bio.substring(0, 100) + '...' : candidate.bio %></p>
+                <p>
+  <%= candidate.bio && candidate.bio.length > 100 
+      ? candidate.bio.substring(0, 100) + '...' 
+      : (candidate.bio || "No bio available") 
+  %>
+</p>
+
               </div>
             </label>
             <% }) %>
