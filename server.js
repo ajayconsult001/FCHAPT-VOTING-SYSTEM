@@ -495,48 +495,45 @@ app.post('/voters/login', (req, res) => {
   res.redirect('/voter/dashboard');
 });
 
-
-/app.get('/voter/dashboard', (req, res) => {
-  if (!req.session.matric_number) return res.redirect('/voters/login');
-
-  const mockVoter = {
-    matric_number: req.session.matric_number,
-    name: 'Mock Voter',
-    department: 'Science',
-    level: '300'
+app.get('/voter/dashboard', (req, res) => {
+  const voter = {
+    name: 'John Doe',
+    matric_number: 'FCAHPT/1234',
+    department: 'Computer Science',
+    level: 'ND2'
   };
 
-  const mockCandidates = [
+  const candidates = [
     {
-      id: 'C1',
-      name: 'Candidate One',
+      id: 1,
+      name: 'Jane Candidate',
       position: 'President',
-      department: 'Engineering',
-      level: '400',
-      pic: '', // You can use default image path
-      votes: 10
+      votes: 10,
+      department: 'Computer Science'
     },
     {
-      id: 'C2',
-      name: 'Candidate Two',
+      id: 2,
+      name: 'Mark Leader',
       position: 'Vice President',
-      department: 'Agriculture',
-      level: '300',
-      pic: '',
-      votes: 5
+      votes: 8,
+      department: 'Animal Health'
     }
   ];
 
+  const votingOpen = true;
+  const lastUpdated = new Date().toLocaleString();
+
   res.render('voter', {
-    voter: mockVoter,
-    candidates: mockCandidates,
+    voter,
+    candidates,
     message: null,
     messageType: null,
     error: null,
-    votingOpen: true,
-    lastUpdated: new Date().toLocaleString()
+    votingOpen,
+    lastUpdated
   });
 });
+
 
 app.post('/voter/vote', async (req, res) => {
   if (!req.session.matric_number) return res.redirect('/voters/login');
