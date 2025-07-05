@@ -116,44 +116,20 @@ app.get('/admin/login', (req, res) => {
 });
 
 app.post('/admin/login', (req, res) => {
-  const { password } = req.body;
-  if (password === ADMIN_PASSWORD) {
-    req.session.isAdmin = true;
-    res.redirect('/admin');
-  } else {
-  res.render('adminlogin', { error: 'Incorrect password' });
-  }
+  req.session.isAdmin = true;
+  res.redirect('/admin');
 });
 
-app.get('/admin', async (req, res) => {
+
+app.get('/admin', (req, res) => {
   if (!req.session.isAdmin) return res.redirect('/admin/login');
-  try {
-    const candidates = await fetchCandidates();
-    const logs = await fetchLogs();
-    const voters = await fetchVoters();
-    const preRegistered = await fetchPreRegisteredStudents();
-    res.render('admin', {
-      candidates,
-      logs,
-      voters,
-      preRegistered,
-      error: null
-    });
-  } catch (err) {
-    console.error(err);
-    res.render('admin', {
-      candidates: [],
-      logs: [],
-      voters: [],
-      preRegistered: [],
-      error: 'Failed to load data.'
-    });
-  }
-});
-
-app.get('/admin/logout', (req, res) => {
-  req.session.destroy();
-  res.redirect('/admin/login');
+  res.render('admin', {
+    candidates: [],
+    logs: [],
+    voters: [],
+    preRegistered: [],
+    error: null
+  });
 });
 
 // Approve candidate
@@ -358,54 +334,32 @@ app.get('/candidate/login', (req, res) => {
   res.render('candidatelogin', { error: null });
 });
 
-app.post('/candidate/login', async (req, res) => {
+app.post('/candidate/login', (req, res) => {
   const { candidate_id } = req.body;
-  try {
-    // No approval check: allow any registered candidate ID
-    const [rows] = await pool.query(
-      'SELECT * FROM candidates WHERE id = ?',
-      [candidate_id]
-    );
-    if (rows.length === 0) {
-      return res.render('candidatelogin', { error: 'Invalid Candidate ID.' });
-    }
-    req.session.candidate_id = candidate_id;
-    res.redirect('/candidate');
-  } catch (err) {
-    console.error(err);
-    res.render('candidatelogin', { error: 'Server error. Please try again.' });
-  }
+  req.session.candidate_id = candidate_id || 'mock_id';
+  res.redirect('/candidate');
 });
-app.get('/candidate', async (req, res) => {
-  if (!req.session.candidate_id) {
-    return res.redirect('/candidate/login');
-  }
-  try {
-    const [rows] = await pool.query(
-      'SELECT * FROM candidates WHERE id = ?',
-      [req.session.candidate_id]
-    );
-    if (rows.length === 0) {
-      req.session.candidate_id = null;
-      return res.redirect('/candidate/login');
-    }
-    const candidate = rows[0];
-    // Show all candidates (approved or not)
-    const [allCandidates] = await pool.query('SELECT * FROM candidates');
-    res.render('candidate', {
-      candidate,
-      candidates: allCandidates,
-      error: null
-    });
-  } catch (err) {
-    console.error(err);
-    res.render('candidate', {
-      candidate: null,
-      candidates: [],
-      error: 'Failed to load candidate data.'
-    });
-  }
+app.get('/candidate', (req, res) => {
+  if (!req.session.candidate_id) return res.redirect('/candidate/login');
+
+  const mockCandidate = {
+    id: req.session.candidate_id,
+    name: 'Mock Candidate',
+    position: 'President',
+    department: 'Computer Science',
+    level: '400',
+    pic: '', // You can use a placeholder image here if needed
+  };
+
+  const mockCandidates = [mockCandidate]; // You can add more dummy candidates if needed
+
+  res.render('candidate', {
+    candidate: mockCandidate,
+    candidates: mockCandidates,
+    error: null
+  });
 });
+
 // Delete candidate
 app.post('/admin/candidate/delete', async (req, res) => {
   const { id } = req.body;
@@ -534,66 +488,54 @@ app.get('/voters/login', (req, res) => {
 });
 
 // --- Voter Login (POST) ---
-app.post('/voters/login', async (req, res) => {
-  const { matric_number, receipt_id } = req.body;
-  try {
-    const [rows] = await pool.query(
-      'SELECT * FROM pre_registered_students WHERE matric_number = ? AND receipt_id = ?',
-      [matric_number, receipt_id]
-    );
-    if (rows.length === 0) {
-      return res.render('voterslogin', { error: 'Invalid credentials.' });
-    }
-    req.session.matric_number = rows[0].matric_number;
-    req.session.voter_name = rows[0].name; // Optional: for dashboard display
-    res.redirect('/voter/dashboard');
-  } catch (err) {
-    res.render('voterslogin', { error: 'Server error.' });
-  }
+app.post('/voters/login', (req, res) => {
+  const { matric_number } = req.body;
+  req.session.matric_number = matric_number || 'mock_matric';
+  req.session.voter_name = 'Mock Voter';
+  res.redirect('/voter/dashboard');
 });
 
-// --- Voter Dashboard (GET) ---
-app.get('/voter/dashboard', async (req, res) => {
+
+/app.get('/voter/dashboard', (req, res) => {
   if (!req.session.matric_number) return res.redirect('/voters/login');
-  try {
-    // Fetch the voter's info using their matric number
-    const [voterRows] = await pool.query(
-      'SELECT * FROM pre_registered_students WHERE matric_number = ?',
-      [req.session.matric_number]
-    );
-    if (voterRows.length === 0) return res.redirect('/voters/login');
-    const voter = voterRows[0];
 
-    // Fetch all approved candidates
-    const [candidates] = await pool.query('SELECT * FROM candidates');
+  const mockVoter = {
+    matric_number: req.session.matric_number,
+    name: 'Mock Voter',
+    department: 'Science',
+    level: '300'
+  };
 
-    // ---- NEW: Add votingOpen and lastUpdated for your EJS template ----
-    
-    const votingOpen = true; // or false
-    const lastUpdated = new Date().toLocaleString();
+  const mockCandidates = [
+    {
+      id: 'C1',
+      name: 'Candidate One',
+      position: 'President',
+      department: 'Engineering',
+      level: '400',
+      pic: '', // You can use default image path
+      votes: 10
+    },
+    {
+      id: 'C2',
+      name: 'Candidate Two',
+      position: 'Vice President',
+      department: 'Agriculture',
+      level: '300',
+      pic: '',
+      votes: 5
+    }
+  ];
 
-    // Render the voting page and pass the voter and candidates info
-    res.render('voter', {
-      voter,          
-      candidates,     
-      message: null,
-      messageType: null,
-      error: null,
-      votingOpen,     
-      lastUpdated     
-    });
-  } catch (err) {
-    console.error(err);
-    res.render('voter', {
-      voter: null,
-      candidates: [],
-      message: 'Failed to load voter data.',
-      messageType: 'error',
-      error: 'Failed to load voter data.',
-      votingOpen: false,
-      lastUpdated: new Date().toLocaleString()
-    });
-  }
+  res.render('voter', {
+    voter: mockVoter,
+    candidates: mockCandidates,
+    message: null,
+    messageType: null,
+    error: null,
+    votingOpen: true,
+    lastUpdated: new Date().toLocaleString()
+  });
 });
 
 app.post('/voter/vote', async (req, res) => {
