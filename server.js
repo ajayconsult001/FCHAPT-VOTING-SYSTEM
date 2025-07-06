@@ -3,46 +3,52 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const bodyParser = require('body-parser');
 const session = require('express-session');
 const path = require('path');
 const fs = require('fs');
 const mysql = require('mysql2/promise');
+const {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+} = require('@simplewebauthn/server');
+
+
+
 
 const app = express();
 const PORT = 3000;
+const baseUrl = 'https://fchapt-voting-system.onrender.com';
+const webAuthnUsers = new Map();
 
 // EJS setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Middleware
-app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-  secret: 'your-session-secret',
+secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true
 }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Multer setup for file uploads
+// Multer setup
 const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+  destination: (_, __, cb) => cb(null, uploadDir),
+  filename: (_, file, cb) => {
     const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    cb(null, file.fieldname + '-' + Date.now() + ext);
   }
 });
 const upload = multer({ storage });
 
-// MySQL connection pool
+// MySQL pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -51,87 +57,59 @@ const pool = mysql.createPool({
   port: process.env.DB_PORT,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
 });
 
-// Helper functions
+// --- Helpers ---
 async function fetchCandidates() {
-  const [candidates] = await pool.query('SELECT * FROM candidates');
-  return candidates;
+  const [c] = await pool.query('SELECT * FROM candidates'); return c;
 }
 async function fetchLogs() {
-  const [logs] = await pool.query('SELECT * FROM logs ORDER BY log_time DESC');
-  return logs;
+  const [l] = await pool.query('SELECT * FROM logs ORDER BY log_time DESC'); return l;
 }
 async function fetchVoters() {
-  const [voters] = await pool.query('SELECT * FROM voters');
-  return voters;
+  const [v] = await pool.query('SELECT * FROM voters'); return v;
 }
 async function fetchPreRegisteredStudents() {
-  const [students] = await pool.query('SELECT * FROM pre_registered_students');
-  return students;
+  const [s] = await pool.query('SELECT * FROM pre_registered_students'); return s;
 }
 
-// Landing page
-app.get(['/', '/landing'], (req, res) => {
-  res.render('landing');
-});
-app.post('/landing', (req, res) => {
-  res.redirect('/landing');
-});
+// --- LANDING ---
+app.get(['/', '/landing'], (_, res) => res.render('landing'));
+app.post('/landing', (_, res) => res.redirect('/landing'));
 
-app.get('/voters/register', (req, res) => {
-  res.render('votersreg', { error: null });
-});
-app.post('/voters/register', (req, res) => {
-  res.render('votersreg');
-});
-
-// About page
-app.get('/about', (req, res) => {
-  res.render('about');
-});
-app.post('/about', (req, res) => {
-  res.render('about');
-});
-
-// Index page
-app.get('/index', (req, res) => {
-  res.render('index');
-});
-app.post('/index', (req, res) => {
-  res.render('index');
-});
-
+// --- STATIC PAGES ---
+app.get('/about', (_, res) => res.render('about'));
+app.post('/about', (_, res) => res.render('about'));
+app.get('/index', (_, res) => res.render('index'));
+app.post('/index', (_, res) => res.render('index'));
 // --- ADMIN AREA ---
 
-const ADMIN_PASSWORD = '1234'; // Change as needed
 
+
+// --- ADMIN LOGIN ---
 app.get('/admin/login', (req, res) => {
-  if (req.session.isAdmin) {
+  if (req.session.isAdmin) return res.redirect('/admin');
+  res.render('adminlogin', { error: null });
+});
+app.post('/admin/login', (req, res) => {
+  const { password } = req.body;
+  if (password === process.env.ADMIN_PASSWORD) {
+    req.session.isAdmin = true;
     res.redirect('/admin');
   } else {
-    res.render('adminlogin', { error: null });
+    res.render('adminlogin', { error: 'Invalid password' });
   }
 });
 
-app.post('/admin/login', (req, res) => {
-  req.session.isAdmin = true;
-  res.redirect('/admin');
-});
-
-
-app.get('/admin', (req, res) => {
+// --- ADMIN DASHBOARD ---
+app.get('/admin', async (req, res) => {
   if (!req.session.isAdmin) return res.redirect('/admin/login');
-  res.render('admin', {
-    candidates: [],
-    logs: [],
-    voters: [],
-    preRegistered: [],
-    error: null
-  });
+  const candidates = await fetchCandidates();
+  const logs = await fetchLogs();
+  const voters = await fetchVoters();
+  const preRegistered = await fetchPreRegisteredStudents();
+  res.render('admin', { candidates, logs, voters, preRegistered, error: null });
 });
-
 // Approve candidate
 app.post('/admin/candidate/approve', async (req, res) => {
   const { id } = req.body;
@@ -326,65 +304,68 @@ app.post('/admin/pre-register-student/delete/:id', async (req, res) => {
   const preRegistered = await fetchPreRegisteredStudents();
   res.render('admin', { candidates, logs, voters, preRegistered, error });
 });
+app.get('/admin/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/admin/login');
+  });
+});
 
-// --- CANDIDATE & VOTER ROUTES ---
+
 
 // Candidate Login Page (GET)
 app.get('/candidate/login', (req, res) => {
   res.render('candidatelogin', { error: null });
 });
 
-app.post('/candidate/login', (req, res) => {
+app.post('/candidate/login', async (req, res) => {
   const { candidate_id } = req.body;
-  req.session.candidate_id = candidate_id || 'mock_id';
-  res.redirect('/candidate');
-});
-app.get('/candidate', (req, res) => {
-  if (!req.session.candidate_id) return res.redirect('/candidate/login');
 
-  const mockCandidate = {
-    id: req.session.candidate_id,
-    name: 'Mock Candidate',
-    position: 'President',
-    department: 'Computer Science',
-    level: '400',
-    pic: '', // You can use a placeholder image here if needed
-  };
+  if (!candidate_id) {
+    return res.render('candidatelogin', { error: 'Candidate ID is required.' });
+  }
 
-  const mockCandidates = [mockCandidate]; // You can add more dummy candidates if needed
-
-  res.render('candidate', {
-    candidate: mockCandidate,
-    candidates: mockCandidates,
-    error: null
-  });
-});
-
-// Delete candidate
-app.post('/admin/candidate/delete', async (req, res) => {
-  const { id } = req.body;
-  let error = null;
   try {
-    // Optionally, delete candidate's image file from uploads
-    const [rows] = await pool.query('SELECT pic FROM candidates WHERE id = ?', [id]);
-    if (rows.length && rows[0].pic) {
-      const picPath = path.join(__dirname, rows[0].pic);
-      if (fs.existsSync(picPath)) {
-        fs.unlinkSync(picPath);
-      }
+    const [rows] = await pool.query('SELECT * FROM candidates WHERE id = ?', [candidate_id]);
+
+    if (!rows.length) {
+      return res.render('candidatelogin', { error: 'Candidate not found.' });
     }
-    await pool.query('DELETE FROM candidates WHERE id = ?', [id]);
-    await pool.query('INSERT INTO logs (action, details) VALUES (?, ?)', ['Delete Candidate', `Candidate ID: ${id} deleted`]);
+
+    const candidate = rows[0];
+
+    if (!candidate.approved) {
+      return res.render('candidatelogin', { error: 'Your application is still pending approval.' });
+    }
+
+    req.session.candidate_id = candidate.id;
+    res.redirect('/candidate');
   } catch (err) {
     console.error(err);
-    error = 'Error deleting candidate.';
+    res.render('candidatelogin', { error: 'Login failed due to server error.' });
   }
-  const candidates = await fetchCandidates();
-  const logs = await fetchLogs();
-  const voters = await fetchVoters();
-  const preRegistered = await fetchPreRegisteredStudents();
-  res.render('admin', { candidates, logs, voters, preRegistered, error });
 });
+
+app.get('/candidate', async (req, res) => {
+  if (!req.session.candidate_id) return res.redirect('/candidate/login');
+
+  try {
+    const [rows] = await pool.query('SELECT * FROM candidates WHERE id = ?', [req.session.candidate_id]);
+    if (!rows.length) return res.redirect('/candidate/login');
+
+    const candidate = rows[0];
+
+    res.render('candidate', {
+      candidate,
+      candidates: [candidate], // or use all candidates if needed
+      error: null
+    });
+  } catch (err) {
+    console.error(err);
+    res.redirect('/candidate/login');
+  }
+});
+
+
 // Show edit form for candidate
 app.get('/admin/candidate/edit/:id', async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM candidates WHERE id = ?', [req.params.id]);
@@ -447,21 +428,25 @@ app.post('/admin/candidate/delete', async (req, res) => {
     console.error('Delete error:', err);
     error = 'Error deleting candidate.';
   }
-  // reload data and render page
-  // ...
+    const candidates = await fetchCandidates();
+  const logs = await fetchLogs();
+  const voters = await fetchVoters();
+  const preRegistered = await fetchPreRegisteredStudents();
+  res.render('admin', { candidates, logs, voters, preRegistered, error });
 });
+
 
 // Candidate Logout
 app.get('/candidate/logout', (req, res) => {
-  req.session.candidate_id = null;
-  res.redirect('/candidate/login');
+  req.session.destroy(() => {
+    res.redirect('/candidate/login');
+  });
 });
 
-// Voter Registration Page (GET)
+// --- VOTER REGISTRATION ---
 app.get('/voters/register', (req, res) => {
   res.render('votersreg', { error: null });
 });
-
 app.post('/voters/register', async (req, res) => {
   const { matric_number, name, receipt_id, department, level } = req.body;
   try {
@@ -469,7 +454,7 @@ app.post('/voters/register', async (req, res) => {
       'SELECT * FROM pre_registered_students WHERE matric_number = ? AND name = ? AND receipt_id = ?',
       [matric_number, name, receipt_id]
     );
-    if (rows.length === 0) {
+    if (!rows.length) {
       return res.render('votersreg', { error: 'You are not a pre-registered student. Contact admin.' });
     }
     await pool.query(
@@ -482,58 +467,133 @@ app.post('/voters/register', async (req, res) => {
     res.render('votersreg', { error: 'Already registered or database error.' });
   }
 });
-// --- Voter Login Page (GET) ---
-app.get('/voters/login', (req, res) => {
-  res.render('voterslogin', { error: null });
-});
 
-// --- Voter Login (POST) ---
+// --- VOTER LOGIN ---
+app.get('/voters/login', (_, res) => res.render('voterslogin', { error: null }));
 app.post('/voters/login', (req, res) => {
   const { matric_number } = req.body;
   req.session.matric_number = matric_number || 'mock_matric';
   req.session.voter_name = 'Mock Voter';
   res.redirect('/voter/dashboard');
 });
+app.get('/voter/dashboard', async (req, res) => {
+  const matric_number = req.session.matric_number;
 
-app.get('/voter/dashboard', (req, res) => {
-  const voter = {
-    name: 'John Doe',
-    matric_number: 'FCAHPT/1234',
-    department: 'Computer Science',
-    level: 'ND2'
-  };
+  if (!matric_number) {
+    return res.redirect('/voters/login');
+  }
 
-  const candidates = [
-    {
-      id: 1,
-      name: 'Jane Candidate',
-      position: 'President',
-      votes: 10,
-      department: 'Computer Science'
-    },
-    {
-      id: 2,
-      name: 'Mark Leader',
-      position: 'Vice President',
-      votes: 8,
-      department: 'Animal Health'
+  try {
+    // Get voter from DB
+    const [voterRows] = await pool.query('SELECT * FROM voters WHERE matric_number = ?', [matric_number]);
+    if (!voterRows.length) {
+      return res.render('voterslogin', { error: 'Voter not found.' });
     }
-  ];
 
-  const votingOpen = true;
-  const lastUpdated = new Date().toLocaleString();
+    const voter = voterRows[0];
 
-  res.render('voter', {
-    voter,
-    candidates,
-    message: null,
-    messageType: null,
-    error: null,
-    votingOpen,
-    lastUpdated
-  });
+    // Get all candidates from DB
+    const [candidatesRaw] = await pool.query('SELECT * FROM candidates');
+
+    // Group candidates by position
+    const groupedCandidates = {};
+    candidatesRaw.forEach(c => {
+      if (!groupedCandidates[c.position]) {
+        groupedCandidates[c.position] = [];
+      }
+      groupedCandidates[c.position].push(c);
+    });
+
+    // Render dashboard
+    res.render('voter', {
+      voter,
+      groupedCandidates,
+      message: null,
+      messageType: null,
+      error: null,
+      votingOpen: true,
+      lastUpdated: new Date().toLocaleString()
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.render('voterslogin', { error: 'Server error. Please try again.' });
+  }
 });
 
+
+// --- BIOMETRIC REGISTRATION ---
+app.get('/biometric/register', (req, res) => {
+  res.render('registerBiometric');
+});
+app.post('/generate-registration-options', async (req, res) => {
+  const { matricNo, studentID } = req.body;
+  const [students] = await pool.query(
+    'SELECT * FROM pre_registered_students WHERE matric_number = ? AND receipt_id = ?',
+    [matricNo, studentID]
+  );
+  if (!students.length) return res.status(400).json({ error: 'Not a valid student. Registration denied.' });
+
+  const user = {
+    id: matricNo,
+    name: matricNo,
+    displayName: `Student ${matricNo}`,
+  };
+
+  const options = generateRegistrationOptions({
+    rpName: 'FCHAPT Voting System',
+    rpID: 'fchapt-voting-system.onrender.com',
+    user,
+    authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+    attestationType: 'none',
+  });
+
+  webAuthnUsers.set(matricNo, { id: matricNo, credentials: [] });
+  req.session.currentUser = matricNo;
+  req.session.challenge = options.challenge;
+
+  res.json(options);
+});
+
+app.post('/verify-registration', async (req, res) => {
+  const body = req.body;
+  const expectedChallenge = req.session.challenge;
+  const userId = req.session.currentUser;
+
+  try {
+    const verification = await verifyRegistrationResponse({
+      response: body.attResp || body,
+      expectedChallenge,
+      expectedOrigin: baseUrl,
+      expectedRPID: 'fchapt-voting-system.onrender.com',
+    });
+
+    if (verification.verified) {
+      const credKey = verification.registrationInfo.credentialPublicKey;
+      const credId = verification.registrationInfo.credentialID;
+      const [existing] = await pool.query('SELECT * FROM voters WHERE matric_number = ?', [userId]);
+
+      if (existing.length > 0) {
+        await pool.query(
+          'UPDATE voters SET fingerprint_credential_id = ?, credential_key = ? WHERE matric_number = ?',
+          [credId.toString('base64'), credKey.toString('base64'), userId]
+        );
+      } else {
+        await pool.query(
+          'INSERT INTO voters (matric_number, fingerprint_credential_id, credential_key, approved, has_voted) VALUES (?, ?, ?, TRUE, FALSE)',
+          [userId, credId.toString('base64'), credKey.toString('base64')]
+        );
+      }
+
+      res.json({ success: true });
+    } else {
+      res.status(400).json({ success: false, message: 'Verification failed' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error during verification' });
+  }
+});
 
 app.post('/voter/vote', async (req, res) => {
   if (!req.session.matric_number) return res.redirect('/voters/login');
@@ -570,13 +630,47 @@ app.post('/voter/vote', async (req, res) => {
       });
     }
 
-    // 2. Parse votes from form
-    const votes = {};
-    Object.keys(req.body).forEach(key => {
-      if (key.startsWith('vote_')) {
-        votes[key.replace('vote_', '')] = req.body[key];
-      }
-    });
+    // 2. Parse and validate votes from form
+const votes = {};
+let invalidVotes = false;
+
+for (const key of Object.keys(req.body)) {
+  if (key.startsWith('vote_')) {
+    const position = key.replace('vote_', '');
+    const candidateId = req.body[key];
+
+    if (!candidateId) {
+      invalidVotes = true;
+      break;
+    }
+
+    // ✅ Check if candidate exists (ignore approved status)
+    const [rows] = await pool.query(
+      'SELECT * FROM candidates WHERE id = ? AND position = ?',
+      [candidateId, position]
+    );
+
+    if (!rows.length) {
+      invalidVotes = true;
+      break;
+    }
+
+    votes[position] = candidateId;
+  }
+}
+
+if (invalidVotes || Object.keys(votes).length === 0) {
+  const [candidates] = await pool.query('SELECT * FROM candidates');
+  return res.render('voter', {
+    voter: voterStatus,
+    candidates,
+    message: 'Invalid vote submitted. Please select valid candidates.',
+    messageType: 'error',
+    error: null,
+    votingOpen: true,
+    lastUpdated: new Date().toLocaleString()
+  });
+}
 
     // 3. Increment candidate votes
     for (const position in votes) {
@@ -627,23 +721,20 @@ app.get('/voters/logout', (req, res) => {
   });
 });
 
+// --- CONTACT / HELP ---
 app.get('/contact', (req, res) => {
   res.render('contact', { message: null, error: null });
 });
-app.post('/contact', async (req, res) => {
-  const { name, email, message } = req.body;
-  
-  res.render('contact', { message: 'Your message has been sent. We will reply soon.', error: null });
+app.post('/contact', (req, res) => {
+  res.render('contact', { message: 'Your message has been sent.', error: null });
 });
 app.get('/help', (req, res) => {
-  res.render('faq'); 
+  res.render('faq');
 });
-
-
 
 // --- START SERVER ---
 app.listen(PORT, () => {
-  const localUrl = `http://localhost:${PORT}`;
   console.log(`Server running on port ${PORT}`);
-  console.log(`Open your browser and visit: ${localUrl}`);
+  console.log(`Open your browser and visit: http://localhost:${PORT}`);
 });
+

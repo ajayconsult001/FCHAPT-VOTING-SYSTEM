@@ -127,6 +127,26 @@
       transition: background var(--transition), border-color var(--transition), color var(--transition);
       position: relative;
     }
+      #dashboardSection,
+      #positionsSection,
+      #voteSection,
+      #resultsSection {
+  opacity: 0;
+  transition: opacity 0.4s ease-in-out;
+}
+.confirm-vote-btn[disabled] {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+@media (max-width: 600px) {
+  a[href*="wa.me"] {
+    bottom: 12px !important;
+    right: 12px !important;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+}
+
     .sidebar nav a .icon { font-size: 1.25em; }
     .sidebar nav a.active, .sidebar nav a:hover {
       background: #1565c0;
@@ -482,7 +502,8 @@
       <div class="positions-block" id="position-<%= posIdx %>">
         <div class="position-title"><%= position %></div>
         <div class="candidates-list">
-          <% positions[position].forEach((candidate, idx) => { %>
+         <% groupedCandidates[position].forEach((candidate, idx) => { %>
+
           <div class="candidate-card" tabindex="0">
             <div class="candidate-pic">
               <% if (candidate.pic) { %>
@@ -685,23 +706,40 @@
       if (link) link.classList.add('active');
     }
     // Default to dashboard
-    showSection('dashboardSection', document.querySelector('.sidebar nav a'));
+   function showSection(sectionId, link) {
+  const allSections = ['dashboardSection', 'positionsSection', 'voteSection', 'resultsSection'];
+
+  allSections.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.display = id === sectionId ? 'block' : 'none';
+      el.style.opacity = id === sectionId ? '1' : '0';
+    }
+  });
+
+  document.querySelectorAll('.sidebar nav a').forEach((a) => a.classList.remove('active'));
+  if (link) link.classList.add('active');
+}
+
 
     // Modal logic
     function openModal(id) {
-      document.getElementById('modal-' + id).style.display = 'block';
-    }
-    function closeModal(id) {
-      document.getElementById('modal-' + id).style.display = 'none';
-    }
-    window.onclick = function (event) {
-      const modals = document.querySelectorAll('.modal');
-      modals.forEach(function (modal) {
-        if (event.target == modal) {
-          modal.style.display = 'none';
-        }
-      });
-    };
+  const modal = document.getElementById('modal-' + id);
+  modal.style.display = 'block';
+
+  // Focus first focusable item
+  const focusable = modal.querySelector('button, [tabindex]');
+  if (focusable) focusable.focus();
+}
+
+const voteForm = document.querySelector('form[action="/voter/vote"]');
+if (voteForm) {
+  voteForm.addEventListener('submit', function () {
+    const btn = voteForm.querySelector('.confirm-vote-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="icon">⏳</span> Submitting...';
+  });
+}
 
     // Chart.js Bar Chart for Candidate Votes (Dashboard)
     const candidateNames = <%- JSON.stringify((candidates || []).map((c) => c.name)) %>;

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register Biometric</title>
+  <meta charset="UTF-8">
+  <script src="https://unpkg.com/@simplewebauthn/browser"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      padding: 2rem;
+      max-width: 600px;
+      margin: auto;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 0.5rem 0;
+      font-size: 1rem;
+    }
+    .message {
+      color: green;
+      font-weight: bold;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>Register Your Fingerprint</h2>
+
+  <form id="biometricForm">
+    <input type="text" id="matricNo" placeholder="Matric Number" required />
+    <input type="text" id="studentID" placeholder="Student ID" required />
+    <button type="submit">Register Fingerprint</button>
+  </form>
+
+  <div class="message" id="message"></div>
+
+  <script>
+    const form = document.getElementById('biometricForm');
+    const message = document.getElementById('message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const matricNo = document.getElementById('matricNo').value;
+      const studentID = document.getElementById('studentID').value;
+
+      try {
+        // STEP 1: Ask server for WebAuthn options
+        const optionsResponse = await fetch('/generate-registration-options', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ matricNo, studentID })
+        });
+
+        const options = await optionsResponse.json();
+
+        // STEP 2: Begin fingerprint registration with browser
+        const attResp = await SimpleWebAuthnBrowser.startRegistration(options);
+
+        // STEP 3: Send response to server for verification
+        const verificationResp = await fetch('/verify-registration', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ attResp, matricNo })
+        });
+
+        const verificationJSON = await verificationResp.json();
+
+        if (verificationJSON && verificationJSON.verified) {
+          message.textContent = "✅ Fingerprint registered successfully!";
+          // Optional: redirect to login
+          setTimeout(() => window.location.href = "/login", 1500);
+        } else {
+          message.textContent = "❌ Registration failed. Try again.";
+        }
+      } catch (err) {
+        console.error(err);
+        message.textContent = "❌ An error occurred during registration.";
+      }
+    });
+  </script>
+</body>
+</html>
