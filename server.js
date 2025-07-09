@@ -861,13 +861,130 @@ app.post('/verify-authentication', async (req, res) => {
 });
 
 app.post('/voter/vote', async (req, res) => {
-const [[statusRow]] = await pool.query('SELECT is_active FROM election_status LIMIT 1');
-if (!statusRow.is_active) {
-  return res.send('Election has not started or is already closed.');
-}
-
+  const [[statusRow]] = await pool.query('SELECT is_active FROM election_status LIMIT 1');
+  if (!statusRow.is_active) {
+    return res.send('Election has not started or is already closed.');
+  }
 
   if (!req.session.matric_number) return res.redirect('/voters/login');
+
+  // Bypass biometric authentication for your matric number
+  if (req.session.matric_number === 'NDCOM/23/568') {
+    try {
+      // 1. Check if voter has already voted
+      const [voterStatusRows] = await pool.query(
+        'SELECT * FROM voters WHERE matric_number = ?',
+        [req.session.matric_number]
+      );
+      if (!voterStatusRows.length) {
+        return res.render('voter', {
+          voter: null,
+          candidates: [],
+          message: 'Voter not found.',
+          messageType: 'error',
+          error: 'Voter not found.',
+          votingOpen: false,
+          lastUpdated: new Date().toLocaleString()
+        });
+      }
+      const voterStatus = voterStatusRows[0];
+      if (voterStatus.has_voted) {
+        const [candidates] = await pool.query('SELECT * FROM candidates');
+        return res.render('voter', {
+          voter: voterStatus,
+          candidates,
+          message: 'You have already voted. You can only view results.',
+          messageType: 'info',
+          error: null,
+          votingOpen: true,
+          lastUpdated: new Date().toLocaleString()
+        });
+      }
+
+      // 2. Parse and validate votes from form
+      const votes = {};
+      let invalidVotes = false;
+
+      for (const key of Object.keys(req.body)) {
+        if (key.startsWith('vote_')) {
+          const position = key.replace('vote_', '');
+          const candidateId = req.body[key];
+
+          if (!candidateId) {
+            invalidVotes = true;
+            break;
+          }
+
+          const [rows] = await pool.query(
+            'SELECT * FROM candidates WHERE id = ? AND position = ?',
+            [candidateId, position]
+          );
+
+          if (!rows.length) {
+            invalidVotes = true;
+            break;
+          }
+
+          votes[position] = candidateId;
+        }
+      }
+
+      if (invalidVotes || Object.keys(votes).length === 0) {
+        const [candidates] = await pool.query('SELECT * FROM candidates');
+        return res.render('voter', {
+          voter: voterStatus,
+          candidates,
+          message: 'Invalid vote submitted. Please select valid candidates.',
+          messageType: 'error',
+          error: null,
+          votingOpen: true,
+          lastUpdated: new Date().toLocaleString()
+        });
+      }
+
+      // 3. Increment candidate votes
+      for (const position in votes) {
+        const candidateId = votes[position];
+        await pool.query('UPDATE candidates SET votes = votes + 1 WHERE id = ?', [candidateId]);
+      }
+
+      // 4. Mark the voter as having voted
+      await pool.query('UPDATE voters SET has_voted = 1 WHERE matric_number = ?', [req.session.matric_number]);
+
+      // 5. Reload data for dashboard
+      const [voterRows] = await pool.query(
+        'SELECT * FROM voters WHERE matric_number = ?',
+        [req.session.matric_number]
+      );
+      const voter = voterRows[0];
+      const [candidates] = await pool.query('SELECT * FROM candidates');
+      const votingOpen = true;
+      const lastUpdated = new Date().toLocaleString();
+
+      return res.render('voter', {
+        voter,
+        candidates,
+        message: 'Your vote has been recorded!',
+        messageType: 'success',
+        error: null,
+        votingOpen,
+        lastUpdated
+      });
+    } catch (err) {
+      console.error(err);
+      return res.render('voter', {
+        voter: null,
+        candidates: [],
+        message: 'Failed to record your vote.',
+        messageType: 'error',
+        error: 'Failed to record your vote.',
+        votingOpen: false,
+        lastUpdated: new Date().toLocaleString()
+      });
+    }
+  }
+
+  // ---- ORIGINAL LOGIC FOR OTHER USERS ----
   try {
     // 1. Check if voter has already voted
     const [voterStatusRows] = await pool.query(
@@ -902,46 +1019,46 @@ if (!statusRow.is_active) {
     }
 
     // 2. Parse and validate votes from form
-const votes = {};
-let invalidVotes = false;
+    const votes = {};
+    let invalidVotes = false;
 
-for (const key of Object.keys(req.body)) {
-  if (key.startsWith('vote_')) {
-    const position = key.replace('vote_', '');
-    const candidateId = req.body[key];
+    for (const key of Object.keys(req.body)) {
+      if (key.startsWith('vote_')) {
+        const position = key.replace('vote_', '');
+        const candidateId = req.body[key];
 
-    if (!candidateId) {
-      invalidVotes = true;
-      break;
+        if (!candidateId) {
+          invalidVotes = true;
+          break;
+        }
+
+        // ✅ Check if candidate exists (ignore approved status)
+        const [rows] = await pool.query(
+          'SELECT * FROM candidates WHERE id = ? AND position = ?',
+          [candidateId, position]
+        );
+
+        if (!rows.length) {
+          invalidVotes = true;
+          break;
+        }
+
+        votes[position] = candidateId;
+      }
     }
 
-    // ✅ Check if candidate exists (ignore approved status)
-    const [rows] = await pool.query(
-      'SELECT * FROM candidates WHERE id = ? AND position = ?',
-      [candidateId, position]
-    );
-
-    if (!rows.length) {
-      invalidVotes = true;
-      break;
+    if (invalidVotes || Object.keys(votes).length === 0) {
+      const [candidates] = await pool.query('SELECT * FROM candidates');
+      return res.render('voter', {
+        voter: voterStatus,
+        candidates,
+        message: 'Invalid vote submitted. Please select valid candidates.',
+        messageType: 'error',
+        error: null,
+        votingOpen: true,
+        lastUpdated: new Date().toLocaleString()
+      });
     }
-
-    votes[position] = candidateId;
-  }
-}
-
-if (invalidVotes || Object.keys(votes).length === 0) {
-  const [candidates] = await pool.query('SELECT * FROM candidates');
-  return res.render('voter', {
-    voter: voterStatus,
-    candidates,
-    message: 'Invalid vote submitted. Please select valid candidates.',
-    messageType: 'error',
-    error: null,
-    votingOpen: true,
-    lastUpdated: new Date().toLocaleString()
-  });
-}
 
     // 3. Increment candidate votes
     for (const position in votes) {
