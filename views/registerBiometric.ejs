@@ -3,7 +3,9 @@
 <head>
   <title>Register Biometric</title>
   <meta charset="UTF-8">
-  <script src="https://unpkg.com/@simplewebauthn/browser"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Only need one SimpleWebAuthn script -->
+  <script src="https://cdn.jsdelivr.net/npm/@simplewebauthn/browser@8.1.0/dist/simplewebauthn-browser.umd.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -31,83 +33,75 @@
 </head>
 <body>
   <h2>Register Your Fingerprint</h2>
-<form action="/generate-registration-options" method="post">
 
- <form id="bioRegForm" method="POST">
-  <input type="text" id="matricNo" name="matricNo" placeholder="Matric Number" required />
-  <input type="text" id="studentID" name="studentID" placeholder="Receipt ID" required />
-<button onclick="registerBiometric()">Register Fingerprint</button>
+  <form id="bioRegForm" method="POST">
+    <input type="text" id="matricNo" name="matricNo" placeholder="Matric Number" required />
+    <input type="text" id="studentID" name="studentID" placeholder="Receipt ID" required />
+    <button type="submit">Register Fingerprint</button>
+  </form>
 
-</form>
+  <p id="statusMessage"></p>
 
-<p id="statusMessage"></p>
+  <script>
+    const { startRegistration } = SimpleWebAuthnBrowser;
 
+    const form = document.getElementById('bioRegForm');
+    const statusMsg = document.getElementById('statusMessage');
 
- 
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-  <script src="https://cdn.jsdelivr.net/npm/@simplewebauthn/browser@8.1.0/dist/simplewebauthn-browser.umd.min.js"></script>
-<script>
-  const { startRegistration } = SimpleWebAuthnBrowser;
+      const matricNo = document.getElementById('matricNo').value;
+      const studentID = document.getElementById('studentID').value;
 
-  const form = document.getElementById('bioRegForm');
-  const statusMsg = document.getElementById('statusMessage');
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const matricNo = document.getElementById('matricNo').value;
-    const studentID = document.getElementById('studentID').value;
-
-    try {
-      const resp = await fetch('/generate-registration-options', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matricNo, studentID })
-      });
-
-      const text = await resp.text();
-      console.log('Server returned:', text); // 👈 Add this to inspect response
-      
-      if (!resp.ok) {
-        statusMsg.innerText = '❌ Invalid matric number or student ID.';
-        return;
-      }
-
-      const options = JSON.parse(text);
-
-      let attResp;
       try {
-        attResp = await startRegistration(options);
-      } catch (err) {
-        console.error('Biometric error:', err);
-        statusMsg.innerText = '❌ Biometric failed or cancelled.';
-        return;
+        const resp = await fetch('/generate-registration-options', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ matricNo, studentID })
+        });
+
+        const text = await resp.text();
+        console.log('Server returned:', text);
+
+        if (!resp.ok) {
+          statusMsg.innerText = '❌ Invalid matric number or student ID.';
+          return;
+        }
+
+        const options = JSON.parse(text);
+
+        let attResp;
+        try {
+          attResp = await startRegistration(options);
+        } catch (err) {
+          console.error('Biometric error:', err);
+          statusMsg.innerText = '❌ Biometric failed or cancelled.';
+          return;
+        }
+
+        const verifyResp = await fetch('/verify-registration', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attResp })
+        });
+
+        const result = await verifyResp.json();
+
+        if (result.success) {
+          statusMsg.innerText = '✅ Biometric registered! Redirecting...';
+          setTimeout(() => {
+            window.location.href = result.redirect;
+          }, 1500);
+        } else {
+          statusMsg.innerText = '❌ Biometric verification failed.';
+        }
+
+      } catch (error) {
+        console.error(error);
+        statusMsg.innerText = '❌ Something went wrong. Check console.';
       }
-
-      const verifyResp = await fetch('/verify-registration', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ attResp })
-      });
-
-      const result = await verifyResp.json();
-
-      if (result.success) {
-        statusMsg.innerText = '✅ Biometric registered! Redirecting...';
-        setTimeout(() => {
-          window.location.href = result.redirect;
-        }, 1500);
-      } else {
-        statusMsg.innerText = '❌ Biometric verification failed.';
-      }
-
-    } catch (error) {
-      console.error(error);
-      statusMsg.innerText = '❌ Something went wrong. Check console.';
-    }
-  });
-</script>
-
-
+    });
+  </script>
 </body>
 </html>

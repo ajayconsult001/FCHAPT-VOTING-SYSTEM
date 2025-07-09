@@ -716,7 +716,12 @@ app.post('/generate-registration-options', async (req, res) => {
 app.post('/verify-registration', async (req, res) => {
   const body = req.body;
   const expectedChallenge = req.session.challenge;
-  const userId = req.session.currentUser;
+  const userId = req.session.currentUser; // This should be the fingerprint ID
+
+  if (!expectedChallenge || !userId) {
+    console.error('Missing session data for biometric verification.');
+    return res.status(400).json({ success: false, message: 'Session expired or invalid. Please start registration again.' });
+  }
 
   try {
     const verification = await verifyRegistrationResponse({
@@ -726,38 +731,42 @@ app.post('/verify-registration', async (req, res) => {
       expectedRPID: 'fchapt-voting-system.onrender.com',
     });
 
-    if (verification.verified) {
-      const credKey = verification.registrationInfo.credentialPublicKey;
-      const credId = verification.registrationInfo.credentialID;
-      const [existing] = await pool.query('SELECT * FROM voters WHERE matric_number = ?', [userId]);
+    if (!verification.verified) {
+      console.error('Biometric verification failed:', verification);
+      return res.status(400).json({ success: false, message: 'Biometric verification failed. Please try again.' });
+    }
 
+    // Extract user info from session or request as needed
+    const { name, matric_number, department, level } = req.session; // ensure these are set during registration
+
+    // Insert or update the voter in the minimal table
+    try {
+      const [existing] = await pool.query('SELECT * FROM voters WHERE id = ?', [userId]);
       if (existing.length > 0) {
+        // Update name, matric_number, department, level if needed
         await pool.query(
-  'UPDATE voters SET fingerprint_credential_id = ?, credential_key = ?, approved = TRUE WHERE matric_number = ?',
-  [credId.toString('base64'), credKey.toString('base64'), userId]
-);
-
+          'UPDATE voters SET name = ?, matric_number = ?, department = ?, level = ? WHERE id = ?',
+          [name, matric_number, department, level, userId]
+        );
       } else {
         await pool.query(
-          'INSERT INTO voters (matric_number, fingerprint_credential_id, credential_key, approved, has_voted) VALUES (?, ?, ?, TRUE, FALSE)',
-          [userId, credId.toString('base64'), credKey.toString('base64')]
+          'INSERT INTO voters (id, name, matric_number, department, level) VALUES (?, ?, ?, ?, ?)',
+          [userId, name, matric_number, department, level]
         );
       }
-
-      // ✅ Only this response should remain
-      return res.json({ success: true, redirect: '/voters/login' });
-    } else {
-      res.status(400).json({ success: false, message: 'Verification failed' });
+    } catch (dbErr) {
+      console.error('Database error during voter save:', dbErr);
+      return res.status(500).json({ success: false, message: 'Database error. Please contact support.' });
     }
+
+    return res.json({ success: true, redirect: '/voters/login' });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Server error during verification' });
+    console.error('Server error during biometric verification:', err);
+    return res.status(500).json({ success: false, message: 'Server error during verification. Please try again later.' });
   }
 });
-const {
-  generateAuthenticationOptions,
-  verifyAuthenticationResponse,
-} = require('@simplewebauthn/server'); // already required
+
 
 app.post('/generate-authentication-options', async (req, res) => {
   const { matricNumber } = req.body;
