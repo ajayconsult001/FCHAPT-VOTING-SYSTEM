@@ -562,13 +562,14 @@
 
     <!-- Vote Section -->
     <section id="voteSection" style="display: none">
-      <form action="/voter/vote" method="POST" novalidate style="margin-top: 32px">
-        <div class="section-title">Cast Your Vote</div>
-        <% Object.keys(positions).forEach((position, posIdx) => { %>
-        <div class="positions-block" id="vote-position-<%= posIdx %>">
-          <div class="position-title"><%= position %></div>
-          <div class="candidates-list">
-            <% positions[position].forEach((candidate, idx) => { %>
+  <form id="voteForm" action="/voter/vote" method="POST" novalidate style="margin-top: 32px">
+    <div class="section-title">Cast Your Vote</div>
+
+    <% Object.keys(positions).forEach((position, posIdx) => { %>
+      <div class="positions-block" id="vote-position-<%= posIdx %>">
+        <div class="position-title"><%= position %></div>
+        <div class="candidates-list">
+          <% positions[position].forEach((candidate, idx) => { %>
             <label class="candidate-card" style="cursor: pointer">
               <input
                 type="radio"
@@ -578,35 +579,88 @@
               />
               <div class="candidate-pic">
                 <% if (candidate.pic) { %>
-                <img src="<%= candidate.pic %>" alt="Picture of <%= candidate.name %>" />
+                  <img src="<%= candidate.pic %>" alt="Picture of <%= candidate.name %>" />
                 <% } else { %>
-                <div class="placeholder-pic">No Image</div>
+                  <div class="placeholder-pic">No Image</div>
                 <% } %>
               </div>
               <div class="candidate-info">
                 <h3><%= candidate.name %></h3>
                 <p>
-  <%= candidate.bio && candidate.bio.length > 100 
-      ? candidate.bio.substring(0, 100) + '...' 
-      : (candidate.bio || "No bio available") 
-  %>
-</p>
-
+                  <%= candidate.bio && candidate.bio.length > 100 
+                      ? candidate.bio.substring(0, 100) + '...' 
+                      : (candidate.bio || "No bio available") 
+                  %>
+                </p>
               </div>
             </label>
-            <% }) %>
-          </div>
+          <% }) %>
         </div>
-        <% }) %>
-        <button type="submit" class="confirm-vote-btn">
-          <span class="icon">🗳️</span>
-          Confirm Vote
-        </button>
-        <% if (typeof message !== 'undefined' && message) { %>
-        <div class="success-message"><%= message %></div>
-        <% } %>
-      </form>
-    </section>
+      </div>
+    <% }) %>
+
+    <button type="button" class="confirm-vote-btn" onclick="startFingerprintAuth()">
+      <span class="icon">🗳️</span>
+      Authenticate & Vote
+    </button>
+
+    <% if (typeof message !== 'undefined' && message) { %>
+      <div class="success-message"><%= message %></div>
+    <% } %>
+  </form>
+
+  <script>
+    async function startFingerprintAuth() {
+      try {
+        const resp = await fetch('/generate-authentication-options', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ matricNumber: '<%= voter.matric_number %>' })
+        });
+
+        const options = await resp.json();
+
+        options.challenge = Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0));
+        options.allowCredentials = options.allowCredentials.map(cred => ({
+          ...cred,
+          id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0)),
+        }));
+
+        const assertion = await navigator.credentials.get({ publicKey: options });
+
+        const credential = {
+          id: assertion.id,
+          rawId: btoa(String.fromCharCode(...new Uint8Array(assertion.rawId))),
+          response: {
+            authenticatorData: btoa(String.fromCharCode(...new Uint8Array(assertion.response.authenticatorData))),
+            clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(assertion.response.clientDataJSON))),
+            signature: btoa(String.fromCharCode(...new Uint8Array(assertion.response.signature))),
+            userHandle: assertion.response.userHandle ? btoa(String.fromCharCode(...new Uint8Array(assertion.response.userHandle))) : null,
+          },
+          type: assertion.type,
+        };
+
+        const verifyResp = await fetch('/verify-authentication', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential, matricNumber: '<%= voter.matric_number %>' }),
+        });
+
+        const verifyResult = await verifyResp.json();
+
+        if (verifyResult.success) {
+          document.getElementById('voteForm').submit();
+        } else {
+          alert('Authentication failed. Cannot vote.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Biometric authentication failed.');
+      }
+    }
+  </script>
+</section>
+
 
     <!-- Results Section -->
     <section id="resultsSection" style="display: none">

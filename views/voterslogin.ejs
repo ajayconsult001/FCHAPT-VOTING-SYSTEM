@@ -231,23 +231,84 @@
       <div class="login-icon" aria-hidden="true">✅</div>
       <h2>HEY MOORITE</h2>
       <% if (error) { %>
-        <div class="error-message"><%= error %></div>
-      <% } %>
-      <form action="/voters/login" method="POST" autocomplete="off">
-        <label for="matric_number">Matric Number</label>
-        <input type="text" name="matric_number" id="matric_number" required autocomplete="username">
+    <div class="error-message"><%= error %></div>
+  <% } %>
+      <form id="voterLoginForm" action="/voters/login" method="POST">
+    <label for="matric_number">Matric Number:</label>
+    <input type="text" name="matric_number" id="matric_number" required />
+    
+    <button type="submit">Login (Without Biometric)</button>
+  </form>
 
-        <label for="receipt_id">Receipt ID</label>
-        <input type="text" name="receipt_id" id="receipt_id" required autocomplete="off">
+  <hr />
 
-        <button type="submit">Login</button>
-      </form>
-      
-    </div>
-  </div>
+  <h3>Or</h3>
+  <button id="biometricLoginBtn">Login with Fingerprint</button>
+</div>
 
-  <footer>
-    &copy; <%= new Date().getFullYear() %> FCAH&PT Electoral Commission. All rights reserved.
-  </footer>
-</body>
-</html>
+<script>
+  document.getElementById('biometricLoginBtn').addEventListener('click', async () => {
+    const matricNumber = document.getElementById('matric_number').value.trim();
+    if (!matricNumber) {
+      alert('Please enter your matric number first.');
+      return;
+    }
+
+    try {
+      // 1. Request auth options from server
+      const authOptionsRes = await fetch('/generate-authentication-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricNumber })
+      });
+
+      if (!authOptionsRes.ok) {
+        const { error } = await authOptionsRes.json();
+        alert(error || 'Failed to get authentication options.');
+        return;
+      }
+
+      let options = await authOptionsRes.json();
+
+      // Convert strings back to Buffers
+      options.challenge = Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0));
+      options.allowCredentials = options.allowCredentials.map(cred => ({
+        ...cred,
+        id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0)),
+      }));
+
+      // 2. Perform WebAuthn authentication
+      const assertion = await navigator.credentials.get({ publicKey: options });
+
+      const authData = {
+        id: assertion.id,
+        rawId: btoa(String.fromCharCode(...new Uint8Array(assertion.rawId))),
+        type: assertion.type,
+        response: {
+          authenticatorData: btoa(String.fromCharCode(...new Uint8Array(assertion.response.authenticatorData))),
+          clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(assertion.response.clientDataJSON))),
+          signature: btoa(String.fromCharCode(...new Uint8Array(assertion.response.signature))),
+          userHandle: assertion.response.userHandle ? btoa(String.fromCharCode(...new Uint8Array(assertion.response.userHandle))) : null,
+        },
+      };
+
+      // 3. Send response to backend for verification
+      const verifyRes = await fetch('/verify-authentication', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attResp: authData }),
+      });
+
+      const verifyData = await verifyRes.json();
+      if (verifyData.success) {
+        window.location.href = verifyData.redirect || '/voter/dashboard';
+      } else {
+        alert(verifyData.message || 'Authentication failed.');
+      }
+
+    } catch (err) {
+      console.error(err);
+      alert('Error during fingerprint login.');
+    }
+  });
+</script>

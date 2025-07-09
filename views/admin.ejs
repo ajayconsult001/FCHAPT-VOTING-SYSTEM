@@ -25,6 +25,58 @@
       display: flex;
       flex-direction: row;
     }
+    @media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    height: auto;
+    padding: 1rem;
+  }
+
+  .logo-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .navbar nav {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .college-name {
+    font-size: 0.92rem;
+    max-width: 100%;
+  }
+}
+@media (max-width: 768px) {
+  table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  th, td {
+    padding: 12px;
+    font-size: 0.92rem;
+  }
+}
+@media (max-width: 600px) {
+  label, input, select, textarea, button {
+    font-size: 0.95rem;
+  }
+
+  input, select, textarea {
+    padding: 10px;
+  }
+
+  button {
+    padding: 12px 20px;
+  }
+}
+
     /* SIDEBAR */
     .sidebar {
       width: 240px;
@@ -266,11 +318,29 @@
       .sidebar-header .sidebar-title { display: none; }
       .sidebar-menu a { padding: 14px 10px; font-size: 0.95rem; }
     }
-    @media (max-width: 600px) {
-      .sidebar { display: none; }
-      .main-content { margin-left: 0; width: 100%; padding: 8px 2px; }
-      .dashboard-cards { flex-direction: column; gap: 18px; }
-    }
+   @media (max-width: 768px) {
+  .sidebar {
+    width: 220px;
+    position: fixed;
+    left: -220px;
+    transition: left 0.3s ease-in-out;
+    z-index: 999;
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+
+  .sidebar-toggle {
+    display: block;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -285,6 +355,8 @@
       <li><a href="#" onclick="showSection('addVoterSection')" id="link-addvoter"><span>🗳</span> Add Voter</a></li>
       <li><a href="#" onclick="showSection('eligibleVotersSection')" id="link-eligible"><span>✅</span> Eligible Voters</a></li>
       <li><a href="#" onclick="showSection('logsSection')" id="link-logs"><span>📜</span> Logs</a></li>
+      <li><a href="#" onclick="showSection('exportSection')" id="link-export"><span>📤</span> Export Results</a></li>
+
       <li><a href="/admin/logout"><span>🚪</span> Logout</a></li>
     </ul>
   </div>
@@ -312,22 +384,145 @@
 
         <!-- Dashboard Section (default) -->
         <div id="dashboardSection" class="section">
-          <h1>Admin Dashboard</h1>
-          <div class="dashboard-cards">
-            <div class="dashboard-card">
-              <div class="card-title">Total Candidates</div>
-              <div class="card-value"><%= candidates ? candidates.length : 0 %></div>
-            </div>
-            <div class="dashboard-card">
-              <div class="card-title">Eligible Voters</div>
-              <div class="card-value"><%= preRegistered ? preRegistered.length : 0 %></div>
-            </div>
-            <div class="dashboard-card">
-              <div class="card-title">Logs</div>
-              <div class="card-value"><%= logs ? logs.length : 0 %></div>
-            </div>
-          </div>
-        </div>
+
+  <h1>Admin Dashboard</h1>
+
+  <div class="dashboard-cards">
+    <!-- Total Candidates -->
+    <div class="dashboard-card">
+      <div class="card-title">Total Candidates</div>
+      <div class="card-value"><%= candidates ? candidates.length : 0 %></div>
+    </div>
+
+    <!-- Eligible Voters -->
+    <div class="dashboard-card">
+      <div class="card-title">Eligible Voters</div>
+      <div class="card-value"><%= preRegistered ? preRegistered.length : 0 %></div>
+    </div>
+
+    <!-- Logs -->
+    <div class="dashboard-card">
+      <div class="card-title">Logs</div>
+      <div class="card-value"><%= logs ? logs.length : 0 %></div>
+    </div>
+
+  <div class="dashboard-card">
+  <div class="card-title">Total Votes Cast</div>
+  <div class="card-value" id="totalVotes">0</div>
+</div>
+
+ 
+  </div>
+<!-- Election Control Section -->
+<div class="form-container">
+  <h2>🗳️ Election Control</h2>
+  <form method="POST" action="/admin/start-election" style="display:inline;">
+    <button type="submit">Start Election</button>
+  </form>
+  <form method="POST" action="/admin/close-election" style="display:inline;margin-left:10px;">
+    <button type="submit">Close Election</button>
+  </form>
+</div>
+
+  <!-- 📊 Chart -->
+  <h2 style="margin-top: 40px;">📊 Candidate Votes Chart</h2>
+<canvas id="voteChart" style="max-width: 600px;"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let voteChart;
+async function fetchVoteData() {
+  const res = await fetch('/api/candidate-votes');
+  return res.json();
+}
+
+async function updateVoteChart() {
+  const data = await fetchVoteData();
+  const labels = data.map(c => c.name);
+  const votes = data.map(c => c.votes);
+
+  if (!voteChart) {
+    const ctx = document.getElementById('voteChart').getContext('2d');
+    voteChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Votes Received',
+          data: votes,
+          backgroundColor: 'rgba(54, 162, 235, 0.6)'
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: false,
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  } else {
+    voteChart.data.labels = labels;
+    voteChart.data.datasets[0].data = votes;
+    voteChart.update();
+  }
+}
+
+// Initial load
+updateVoteChart();
+// Update every 5 seconds
+setInterval(updateVoteChart, 5000);
+
+async function fetchTotalVotes() {
+  try {
+    const res = await fetch('/api/total-votes');
+    const data = await res.json();
+    document.getElementById('totalVotes').textContent = data.total;
+  } catch (e) {
+    document.getElementById('totalVotes').textContent = 'Error';
+  }
+}
+
+// Initial load
+fetchTotalVotes();
+// Update every 5 seconds
+setInterval(fetchTotalVotes, 5000);
+
+</script>
+</div>
+
+
+<!-- Export Results Section -->
+<div id="exportSection" class="section" style="display:none;">
+  <div class="form-container">
+    <h2>📤 Export Voting Results</h2>
+    <form method="GET" action="/admin/export-results">
+      <label for="position">Filter by Position:</label>
+      <select name="position" id="position">
+        <option value="">-- All Positions --</option>
+        <option value="President">President</option>
+        <option value="Vice President">Vice President</option>
+        <option value="Secretary">Secretary</option>
+        <option value="PRO">Public Relations Officer</option>
+        <option value="Treasurer">Treasurer</option>
+      </select>
+
+      <label for="department">Filter by Department:</label>
+      <select name="department" id="department">
+        <option value="">-- All Departments --</option>
+        <option value="Computer Science">Computer Science</option>
+        <option value="Animal Health">Animal Health</option>
+        <option value="Science Laboratory Technology">Science Laboratory Technology</option>
+        <option value="Agricultural Extension">Agricultural Extension</option>
+      </select>
+
+<form action="/admin/export-results" method="GET">
+  <button type="submit">📤 Export Results & Email Voters</button>
+</form>
+
+    </form>
+  </div>
+</div>
 
         <!-- Candidates Section -->
 <div id="candidatesSection" class="section" style="display:none;">
@@ -606,25 +801,30 @@
     // Sidebar toggle
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebarToggle');
-    sidebarToggle.addEventListener('click', function() {
-      sidebar.classList.toggle('collapsed');
-    });
+    sidebarToggle.addEventListener('click', function () {
+  sidebar.classList.toggle('open');
+});
+
 
     // Section navigation logic
-    const sections = [
-      'dashboardSection',
-      'candidatesSection',
-      'addVoterSection',
-      'eligibleVotersSection',
-      'logsSection'
-    ];
-    const links = [
-      'link-dashboard',
-      'link-candidates',
-      'link-addvoter',
-      'link-eligible',
-      'link-logs'
-    ];
+   const sections = [
+  'dashboardSection',
+  'candidatesSection',
+  'addVoterSection',
+  'eligibleVotersSection',
+  'logsSection',
+  'exportSection' // 
+];
+
+const links = [
+  'link-dashboard',
+  'link-candidates',
+  'link-addvoter',
+  'link-eligible',
+  'link-logs',
+  'link-export' // 
+];
+
     function showSection(id) {
       sections.forEach(sectionId => {
         document.getElementById(sectionId).style.display = (sectionId === id) ? 'block' : 'none';

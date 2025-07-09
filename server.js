@@ -3,8 +3,10 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const ExcelJS = require('exceljs');
 const session = require('express-session');
 const path = require('path');
+const nodemailer = require('nodemailer');
 const fs = require('fs');
 const mysql = require('mysql2/promise');
 const {
@@ -72,6 +74,10 @@ async function fetchVoters() {
 async function fetchPreRegisteredStudents() {
   const [s] = await pool.query('SELECT * FROM pre_registered_students'); return s;
 }
+async function fetchTotalVotes() {
+  const [result] = await pool.query('SELECT COUNT(*) AS total FROM votes');
+  return result[0].total;
+}
 
 // --- LANDING ---
 app.get(['/', '/landing'], (_, res) => res.render('landing'));
@@ -93,7 +99,8 @@ app.get('/admin/login', (req, res) => {
 });
 app.post('/admin/login', (req, res) => {
   const { password } = req.body;
-  if (password === process.env.ADMIN_PASSWORD) {
+if (password === process.env.ADMIN_PASSWORD)
+ {
     req.session.isAdmin = true;
     res.redirect('/admin');
   } else {
@@ -101,15 +108,130 @@ app.post('/admin/login', (req, res) => {
   }
 });
 
+
 // --- ADMIN DASHBOARD ---
 app.get('/admin', async (req, res) => {
   if (!req.session.isAdmin) return res.redirect('/admin/login');
+
   const candidates = await fetchCandidates();
   const logs = await fetchLogs();
   const voters = await fetchVoters();
   const preRegistered = await fetchPreRegisteredStudents();
-  res.render('admin', { candidates, logs, voters, preRegistered, error: null });
+
+  const [voteResult] = await pool.query(
+  'SELECT COUNT(*) AS totalVotes FROM voters WHERE has_voted = TRUE'
+);
+const totalVotes = voteResult[0]?.totalVotes || 0;
+
+  const [votedCount] = await pool.query(
+    `SELECT COUNT(*) AS voted FROM voters WHERE has_voted = TRUE`
+  );
+  const voted = votedCount?.[0]?.voted ?? 0;
+  const notVoted = (preRegistered?.length || 0) - voted;
+
+  const [candidateVotesRaw] = await pool.query(`
+    SELECT c.name, COUNT(v.id) AS voteCount
+    FROM candidates c
+    LEFT JOIN votes v ON v.candidate_id = c.id
+    GROUP BY c.name
+  `);
+
+  const candidateVotes = candidateVotesRaw.map(row => ({
+    name: row.name,
+    voteCount: row.voteCount
+  }));
+
+  res.render('admin', {
+    candidates,
+    logs,
+    voters,
+    preRegistered,
+    error: null,
+    totalVotes,
+    voted,
+    notVoted,
+    candidateVotes
+  });
 });
+
+
+
+app.post('/admin/start-election', async (req, res) => {
+  await pool.query('UPDATE election_status SET is_active = TRUE');
+  res.redirect('/admin');
+});
+
+app.post('/admin/close-election', async (req, res) => {
+  await pool.query('UPDATE election_status SET is_active = FALSE');
+  res.redirect('/admin');
+});
+
+
+// Email setup (use your Gmail or any SMTP config)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'your_email@gmail.com', // Replace with your email
+    pass: 'your_app_password'     // Use app password (not normal password)
+  }
+});
+
+app.get('/admin/export-results', async (req, res) => {
+  try {
+    // ✅ 1. Fetch candidate votes
+    const [candidateVotes] = await pool.query(`
+      SELECT c.name AS candidate_name, COUNT(v.id) AS vote_count
+      FROM candidates c
+      LEFT JOIN votes v ON v.candidate_id = c.id
+      GROUP BY c.name
+    `);
+
+    // ✅ 2. Create Excel sheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Election Results');
+
+    worksheet.columns = [
+      { header: 'Candidate', key: 'candidate', width: 30 },
+      { header: 'Vote Count', key: 'votes', width: 15 },
+    ];
+
+    candidateVotes.forEach(row => {
+      worksheet.addRow({
+        candidate: row.candidate_name,
+        votes: row.vote_count
+      });
+    });
+
+    const filePath = './election_results.xlsx';
+    await workbook.xlsx.writeFile(filePath);
+
+    // ✅ 3. Fetch voter emails
+    const [voters] = await pool.query(`
+      SELECT email FROM voters WHERE email IS NOT NULL AND email != ''
+    `);
+
+    const resultText = candidateVotes
+      .map(c => `${c.candidate_name}: ${c.vote_count} vote(s)`)
+      .join('\n');
+
+    // ✅ 4. Send result email to each voter
+    for (const voter of voters) {
+      await transporter.sendMail({
+        from: '"FCAHPT Voting System" <your_email@gmail.com>',
+        to: voter.email,
+        subject: '📊 Election Results Summary',
+        text: `Dear Voter,\n\nHere are the final results of the student election:\n\n${resultText}\n\nThank you for your participation.\n\n- FCAHPT Voting System`
+      });
+    }
+
+    // ✅ 5. Send Excel file as download
+    res.download(filePath, 'election_results.xlsx');
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).send('Error exporting results or sending emails.');
+  }
+});
+
 // Approve candidate
 app.post('/admin/candidate/approve', async (req, res) => {
   const { id } = req.body;
@@ -309,6 +431,27 @@ app.get('/admin/logout', (req, res) => {
     res.redirect('/admin/login');
   });
 });
+// Place this in your Express app (e.g., after other admin routes)
+app.get('/api/candidate-votes', async (req, res) => {
+  try {
+    const [candidateVotes] = await pool.query(`
+      SELECT name, votes FROM candidates
+    `);
+    res.json(candidateVotes);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch vote data' });
+  }
+});
+
+// Get the number of voters who have voted
+app.get('/api/total-votes', async (req, res) => {
+  try {
+    const [result] = await pool.query('SELECT COUNT(*) AS total FROM voters WHERE has_voted = TRUE');
+    res.json({ total: result[0].total });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch total votes' });
+  }
+});
 
 
 
@@ -333,10 +476,7 @@ app.post('/candidate/login', async (req, res) => {
 
     const candidate = rows[0];
 
-    if (!candidate.approved) {
-      return res.render('candidatelogin', { error: 'Your application is still pending approval.' });
-    }
-
+    
     req.session.candidate_id = candidate.id;
     res.redirect('/candidate');
   } catch (err) {
@@ -349,22 +489,39 @@ app.get('/candidate', async (req, res) => {
   if (!req.session.candidate_id) return res.redirect('/candidate/login');
 
   try {
+    // Get the logged-in candidate
     const [rows] = await pool.query('SELECT * FROM candidates WHERE id = ?', [req.session.candidate_id]);
     if (!rows.length) return res.redirect('/candidate/login');
 
     const candidate = rows[0];
 
+    // ✅ Get ALL candidates + their vote count
+    const [candidates] = await pool.query(`
+      SELECT 
+        c.id, 
+        c.name, 
+        c.position, 
+        c.department, 
+        c.pic, 
+        c.bio, 
+        COUNT(v.id) AS votes
+      FROM candidates c
+      LEFT JOIN votes v ON v.candidate_id = c.id
+      GROUP BY 
+        c.id, c.name, c.position, c.department, c.pic, c.bio
+    `);
+
     res.render('candidate', {
-      candidate,
-      candidates: [candidate], // or use all candidates if needed
+      candidate,     // Logged-in candidate
+      candidates,    // All candidates and their votes
       error: null
     });
+
   } catch (err) {
     console.error(err);
     res.redirect('/candidate/login');
   }
 });
-
 
 // Show edit form for candidate
 app.get('/admin/candidate/edit/:id', async (req, res) => {
@@ -445,8 +602,9 @@ app.get('/candidate/logout', (req, res) => {
 
 // --- VOTER REGISTRATION ---
 app.get('/voters/register', (req, res) => {
-  res.render('votersreg', { error: null });
+  res.render('registerBiometric', { error: null });
 });
+
 app.post('/voters/register', async (req, res) => {
   const { matric_number, name, receipt_id, department, level } = req.body;
   try {
@@ -575,9 +733,10 @@ app.post('/verify-registration', async (req, res) => {
 
       if (existing.length > 0) {
         await pool.query(
-          'UPDATE voters SET fingerprint_credential_id = ?, credential_key = ? WHERE matric_number = ?',
-          [credId.toString('base64'), credKey.toString('base64'), userId]
-        );
+  'UPDATE voters SET fingerprint_credential_id = ?, credential_key = ?, approved = TRUE WHERE matric_number = ?',
+  [credId.toString('base64'), credKey.toString('base64'), userId]
+);
+
       } else {
         await pool.query(
           'INSERT INTO voters (matric_number, fingerprint_credential_id, credential_key, approved, has_voted) VALUES (?, ?, ?, TRUE, FALSE)',
@@ -585,7 +744,8 @@ app.post('/verify-registration', async (req, res) => {
         );
       }
 
-      res.json({ success: true });
+      // ✅ Only this response should remain
+      return res.json({ success: true, redirect: '/voters/login' });
     } else {
       res.status(400).json({ success: false, message: 'Verification failed' });
     }
@@ -594,8 +754,99 @@ app.post('/verify-registration', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error during verification' });
   }
 });
+const {
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} = require('@simplewebauthn/server'); // already required
+
+app.post('/generate-authentication-options', async (req, res) => {
+  const { matricNumber } = req.body;
+
+  try {
+    const [voters] = await pool.query('SELECT * FROM voters WHERE matric_number = ?', [matricNumber]);
+    if (!voters.length) {
+      return res.status(400).json({ error: 'Voter not found' });
+    }
+
+    const voter = voters[0];
+
+    if (!voter.fingerprint_credential_id) {
+      return res.status(400).json({ error: 'No biometric credential registered for this voter.' });
+    }
+
+    const options = generateAuthenticationOptions({
+      rpID: 'fchapt-voting-system.onrender.com',
+      userVerification: 'required',
+      allowCredentials: [
+        {
+          id: Buffer.from(voter.fingerprint_credential_id, 'base64'),
+          type: 'public-key',
+        },
+      ],
+    });
+
+    req.session.challenge = options.challenge;
+    req.session.currentUser = matricNumber;
+
+    // Convert to base64 so frontend can decode
+    options.challenge = Buffer.from(options.challenge).toString('base64');
+    options.allowCredentials = options.allowCredentials.map(cred => ({
+      ...cred,
+      id: Buffer.from(cred.id).toString('base64'),
+    }));
+
+    res.json(options);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error generating authentication options' });
+  }
+});
+
+app.post('/verify-authentication', async (req, res) => {
+  const { attResp } = req.body;
+  const expectedChallenge = req.session.challenge;
+  const userId = req.session.currentUser;
+
+  try {
+    const [voters] = await pool.query('SELECT * FROM voters WHERE matric_number = ?', [userId]);
+    if (!voters.length) {
+      return res.status(400).json({ success: false, message: 'Voter not found.' });
+    }
+
+    const voter = voters[0];
+
+    const verification = await verifyAuthenticationResponse({
+      response: attResp,
+      expectedChallenge,
+      expectedOrigin: baseUrl,
+      expectedRPID: 'fchapt-voting-system.onrender.com',
+      authenticator: {
+        credentialID: Buffer.from(voter.fingerprint_credential_id, 'base64'),
+        credentialPublicKey: Buffer.from(voter.credential_key, 'base64'),
+        counter: 0, // you can implement real counter later if needed
+      },
+    });
+
+    if (verification.verified) {
+      req.session.matric_number = userId;
+      req.session.voter_name = voter.name;
+      return res.json({ success: true, redirect: '/voter/dashboard' });
+    } else {
+      return res.status(400).json({ success: false, message: 'Fingerprint verification failed' });
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: 'Server error during authentication verification' });
+  }
+});
 
 app.post('/voter/vote', async (req, res) => {
+const [[statusRow]] = await pool.query('SELECT is_active FROM election_status LIMIT 1');
+if (!statusRow.is_active) {
+  return res.send('Election has not started or is already closed.');
+}
+
+
   if (!req.session.matric_number) return res.redirect('/voters/login');
   try {
     // 1. Check if voter has already voted

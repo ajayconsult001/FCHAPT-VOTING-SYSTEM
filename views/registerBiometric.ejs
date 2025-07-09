@@ -31,59 +31,83 @@
 </head>
 <body>
   <h2>Register Your Fingerprint</h2>
+<form action="/generate-registration-options" method="post">
 
-  <form id="biometricForm">
-    <input type="text" id="matricNo" placeholder="Matric Number" required />
-    <input type="text" id="studentID" placeholder="Student ID" required />
-    <button type="submit">Register Fingerprint</button>
-  </form>
+ <form id="bioRegForm" method="POST">
+  <input type="text" id="matricNo" name="matricNo" placeholder="Matric Number" required />
+  <input type="text" id="studentID" name="studentID" placeholder="Receipt ID" required />
+<button onclick="registerBiometric()">Register Fingerprint</button>
 
-  <div class="message" id="message"></div>
+</form>
 
-  <script>
-    const form = document.getElementById('biometricForm');
-    const message = document.getElementById('message');
+<p id="statusMessage"></p>
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
 
-      const matricNo = document.getElementById('matricNo').value;
-      const studentID = document.getElementById('studentID').value;
+ 
 
-      try {
-        // STEP 1: Ask server for WebAuthn options
-        const optionsResponse = await fetch('/generate-registration-options', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ matricNo, studentID })
-        });
+  <script src="https://cdn.jsdelivr.net/npm/@simplewebauthn/browser@8.1.0/dist/simplewebauthn-browser.umd.min.js"></script>
+<script>
+  const { startRegistration } = SimpleWebAuthnBrowser;
 
-        const options = await optionsResponse.json();
+  const form = document.getElementById('bioRegForm');
+  const statusMsg = document.getElementById('statusMessage');
 
-        // STEP 2: Begin fingerprint registration with browser
-        const attResp = await SimpleWebAuthnBrowser.startRegistration(options);
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-        // STEP 3: Send response to server for verification
-        const verificationResp = await fetch('/verify-registration', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ attResp, matricNo })
-        });
+    const matricNo = document.getElementById('matricNo').value;
+    const studentID = document.getElementById('studentID').value;
 
-        const verificationJSON = await verificationResp.json();
+    try {
+      const resp = await fetch('/generate-registration-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricNo, studentID })
+      });
 
-        if (verificationJSON && verificationJSON.verified) {
-          message.textContent = "✅ Fingerprint registered successfully!";
-          // Optional: redirect to login
-          setTimeout(() => window.location.href = "/login", 1500);
-        } else {
-          message.textContent = "❌ Registration failed. Try again.";
-        }
-      } catch (err) {
-        console.error(err);
-        message.textContent = "❌ An error occurred during registration.";
+      const text = await resp.text();
+      console.log('Server returned:', text); // 👈 Add this to inspect response
+      
+      if (!resp.ok) {
+        statusMsg.innerText = '❌ Invalid matric number or student ID.';
+        return;
       }
-    });
-  </script>
+
+      const options = JSON.parse(text);
+
+      let attResp;
+      try {
+        attResp = await startRegistration(options);
+      } catch (err) {
+        console.error('Biometric error:', err);
+        statusMsg.innerText = '❌ Biometric failed or cancelled.';
+        return;
+      }
+
+      const verifyResp = await fetch('/verify-registration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attResp })
+      });
+
+      const result = await verifyResp.json();
+
+      if (result.success) {
+        statusMsg.innerText = '✅ Biometric registered! Redirecting...';
+        setTimeout(() => {
+          window.location.href = result.redirect;
+        }, 1500);
+      } else {
+        statusMsg.innerText = '❌ Biometric verification failed.';
+      }
+
+    } catch (error) {
+      console.error(error);
+      statusMsg.innerText = '❌ Something went wrong. Check console.';
+    }
+  });
+</script>
+
+
 </body>
 </html>
