@@ -4,7 +4,6 @@
   <title>Register Biometric</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Only need one SimpleWebAuthn script -->
   <script src="https://cdn.jsdelivr.net/npm/@simplewebauthn/browser@8.1.0/dist/simplewebauthn-browser.umd.min.js"></script>
   <style>
     body {
@@ -29,6 +28,34 @@
       font-weight: bold;
       text-align: center;
     }
+    .login-link {
+      margin-top: 1.5em;
+      text-align: center;
+      display: block;
+    }
+    .login-link a {
+      color: #007bff;
+      text-decoration: underline;
+      font-weight: bold;
+    }
+    .home-btn-container {
+      margin-top: 2em;
+      text-align: center;
+    }
+    .home-btn {
+      background: #14532d;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 32px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+    .home-btn:hover {
+      background: #1070c5;
+    }
   </style>
 </head>
 <body>
@@ -37,10 +64,21 @@
   <form id="bioRegForm" method="POST">
     <input type="text" id="matricNo" name="matricNo" placeholder="Matric Number" required />
     <input type="text" id="studentID" name="studentID" placeholder="Receipt ID" required />
+
     <button type="submit">Register Fingerprint</button>
+    <div class="login-link">
+      Already registered? <a href="/voters/login">Login here</a>
+    </div>
   </form>
 
   <p id="statusMessage"></p>
+
+  <!-- Back to Home Button -->
+  <div class="home-btn-container">
+    <button class="home-btn" onclick="window.location.href='/'">
+      ← Back to Home
+    </button>
+  </div>
 
   <script>
     const { startRegistration } = SimpleWebAuthnBrowser;
@@ -94,7 +132,7 @@
             window.location.href = result.redirect;
           }, 1500);
         } else {
-          statusMsg.innerText = '❌ Biometric verification failed.';
+          statusMsg.innerText = result.message || '❌ Biometric verification failed.';
         }
 
       } catch (error) {
