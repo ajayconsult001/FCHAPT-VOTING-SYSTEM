@@ -765,21 +765,7 @@
       if (link) link.classList.add('active');
     }
     // Default to dashboard
-   function showSection(sectionId, link) {
-  const allSections = ['dashboardSection', 'positionsSection', 'voteSection', 'resultsSection'];
-
-  allSections.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.style.display = id === sectionId ? 'block' : 'none';
-      el.style.opacity = id === sectionId ? '1' : '0';
-    }
-  });
-
-  document.querySelectorAll('.sidebar nav a').forEach((a) => a.classList.remove('active'));
-  if (link) link.classList.add('active');
-}
-
+  
 
     // Modal logic
     function openModal(id) {
