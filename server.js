@@ -633,7 +633,7 @@ app.post('/voters/login', async (req, res) => {
 
   // Only allow your matric number
   if (matric_number !== 'NDCOM/23/568') {
-    return res.render('voterslogin', { error: 'Unauthorized matric number.' });
+    return res.render('voterslogin', { error: 'Biometric not registerd.' });
   }
 
   // Simulate biometric completion: ensure your voter record exists
