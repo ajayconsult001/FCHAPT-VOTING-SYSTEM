@@ -653,7 +653,6 @@ app.post('/voters/login', async (req, res) => {
   // Redirect to dashboard or voting page
   res.redirect('/voter/dashboard');
 });
-
 app.get('/voter/dashboard', async (req, res) => {
   const matric_number = req.session.matric_number;
 
@@ -662,30 +661,29 @@ app.get('/voter/dashboard', async (req, res) => {
   }
 
   try {
-    // Get voter from DB
+    // Fetch voter from the database
     const [voterRows] = await pool.query('SELECT * FROM voters WHERE matric_number = ?', [matric_number]);
     if (!voterRows.length) {
       return res.render('voterslogin', { error: 'Voter not found.' });
     }
-
     const voter = voterRows[0];
 
-    // Get all candidates from DB
+    // Fetch all candidates from the database
     const [candidatesRaw] = await pool.query('SELECT * FROM candidates');
+    const candidates = candidatesRaw; // This is essential!
 
     // Group candidates by position
     const groupedCandidates = {};
-    candidatesRaw.forEach(c => {
-      if (!groupedCandidates[c.position]) {
-        groupedCandidates[c.position] = [];
-      }
+    candidates.forEach(c => {
+      if (!groupedCandidates[c.position]) groupedCandidates[c.position] = [];
       groupedCandidates[c.position].push(c);
     });
 
-    // Render dashboard
+    // Pass candidates and groupedCandidates to the template
     res.render('voter', {
       voter,
       groupedCandidates,
+      candidates, // This line fixes your error!
       message: null,
       messageType: null,
       error: null,
